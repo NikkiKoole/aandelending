@@ -112,8 +112,22 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header">
+                        <div
+                            class="card-header"
+                            style="
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                            "
+                        >
                             <h2 class="card-title">Populaire aandelen</h2>
+                            <select id="stock-sort" class="sort-select">
+                                <option value="alphabetical">
+                                    Alfabetisch
+                                </option>
+                                <option value="change">Dagwijziging %</option>
+                                <option value="sector">Sector</option>
+                            </select>
                         </div>
                         <ul class="stock-list" id="popular-stocks">
                             <li class="loading">
@@ -348,7 +362,7 @@
                         style="display: none"
                     >
                         <div class="card-header">
-                            <h2 class="card-title">Analisten aanbevelingen</h2>
+                            <h2 class="card-title">Wat analisten zeggen</h2>
                         </div>
                         <div id="recommendations-content">
                             <div class="loading">

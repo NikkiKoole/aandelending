@@ -229,6 +229,11 @@ const App = {
       });
     });
 
+    // Stock sort dropdown
+    document.getElementById("stock-sort").addEventListener("change", (e) => {
+      this.renderPopularStocks(e.target.value);
+    });
+
     // Trade quantity input
     document.getElementById("trade-quantity").addEventListener("input", () => {
       this.updateTradeSummary();
@@ -425,6 +430,9 @@ const App = {
     this.loadMarketNews();
   },
 
+  // Cached stocks for sorting
+  cachedPopularStocks: null,
+
   // Load popular stocks
   async loadPopularStocks() {
     const container = document.getElementById("popular-stocks");
@@ -433,23 +441,78 @@ const App = {
 
     try {
       const stocks = await API.getPopularStocksWithPrices();
-      container.innerHTML = stocks
-        .map((stock) => this.renderStockItem(stock))
-        .join("");
+      this.cachedPopularStocks = stocks;
 
-      // Add click handlers
-      container.querySelectorAll(".stock-item").forEach((item) => {
-        item.addEventListener("click", () => {
-          const symbol = item.dataset.symbol;
-          this.navigateTo("stocks");
-          this.showStockDetail(symbol);
-        });
-      });
+      // Get current sort option
+      const sortSelect = document.getElementById("stock-sort");
+      const sortBy = sortSelect ? sortSelect.value : "alphabetical";
+
+      this.renderPopularStocks(sortBy);
     } catch (error) {
       container.innerHTML =
         '<li class="loading">Fout bij laden van aandelen</li>';
       console.error("Failed to load popular stocks:", error);
     }
+  },
+
+  // Sort and render popular stocks
+  renderPopularStocks(sortBy) {
+    const container = document.getElementById("popular-stocks");
+    if (!this.cachedPopularStocks) return;
+
+    let stocks = [...this.cachedPopularStocks];
+
+    // Sort stocks based on selection
+    switch (sortBy) {
+      case "alphabetical":
+        stocks.sort((a, b) => a.name.localeCompare(b.name));
+        container.innerHTML = stocks
+          .map((stock) => this.renderStockItem(stock))
+          .join("");
+        break;
+
+      case "change":
+        stocks.sort((a, b) => (b.percentChange || 0) - (a.percentChange || 0));
+        container.innerHTML = stocks
+          .map((stock) => this.renderStockItem(stock))
+          .join("");
+        break;
+
+      case "sector":
+        // Group by sector
+        const sectors = {};
+        stocks.forEach((stock) => {
+          const companyInfo = getCompanyInfo(stock.symbol);
+          const sector = companyInfo?.sector || "Overig";
+          if (!sectors[sector]) sectors[sector] = [];
+          sectors[sector].push(stock);
+        });
+
+        // Sort sectors by predefined order
+        const sortedSectors = Object.keys(sectors).sort((a, b) => {
+          return getSectorOrder(a) - getSectorOrder(b);
+        });
+
+        // Render with sector headers
+        let html = "";
+        sortedSectors.forEach((sector) => {
+          html += `<li class="sector-header">${sector}</li>`;
+          sectors[sector].forEach((stock) => {
+            html += this.renderStockItem(stock);
+          });
+        });
+        container.innerHTML = html;
+        break;
+    }
+
+    // Add click handlers
+    container.querySelectorAll(".stock-item").forEach((item) => {
+      item.addEventListener("click", () => {
+        const symbol = item.dataset.symbol;
+        this.navigateTo("stocks");
+        this.showStockDetail(symbol);
+      });
+    });
   },
 
   // Render a stock item
@@ -813,6 +876,9 @@ const App = {
           <span><div class="legend-dot" style="background: #f0ad4e"></div> Houden (${rec.hold})</span>
           <span><div class="legend-dot" style="background: #e07070"></div> Verkopen (${rec.sell})</span>
           <span><div class="legend-dot" style="background: var(--ft-red)"></div> Sterk verkopen (${rec.strongSell})</span>
+        </div>
+        <div style="margin-top: var(--spacing-md); text-align: right;">
+          <a href="https://finance.yahoo.com/quote/${symbol}/analysis" target="_blank" rel="noopener" style="font-family: var(--font-sans); font-size: 0.85rem; color: var(--ft-blue);">Meer op Yahoo Finance &rarr;</a>
         </div>
       `;
     } catch (error) {
