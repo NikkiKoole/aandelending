@@ -1073,20 +1073,15 @@ const App = {
     document.getElementById("settings-username").textContent = username;
     document.getElementById("fee-eu").value = settings.fees.eu;
     document.getElementById("fee-us").value = settings.fees.us;
-    document.getElementById("starting-balance").value =
-      settings.startingBalance;
   },
 
   // Save settings
   saveSettings() {
     const feeEu = parseFloat(document.getElementById("fee-eu").value) || 0;
     const feeUs = parseFloat(document.getElementById("fee-us").value) || 0;
-    const startingBalance =
-      parseFloat(document.getElementById("starting-balance").value) || 10000;
 
     Settings.save({
       fees: { eu: feeEu, us: feeUs },
-      startingBalance,
     });
 
     this.showToast("Instellingen opgeslagen", "success");
