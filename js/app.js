@@ -13,65 +13,24 @@ const App = {
     this.initRouter();
   },
 
-  // Initialize browser routing
+  // Initialize browser routing (history state only, no URL changes for GitHub Pages compatibility)
   initRouter() {
     // Handle browser back/forward buttons
     window.addEventListener("popstate", (e) => {
       if (e.state) {
-        this.handleRouteChange(e.state, false);
+        this.handleRouteChange(e.state);
       } else {
         // No state, go to dashboard
-        this.handleRouteChange({ view: "dashboard" }, false);
+        this.handleRouteChange({ view: "dashboard" });
       }
     });
 
-    // Handle initial URL on page load
-    this.handleInitialRoute();
+    // Set initial state
+    history.replaceState({ view: "dashboard" }, "");
   },
 
-  // Handle initial route from URL
-  handleInitialRoute() {
-    const path = window.location.pathname;
-    const params = new URLSearchParams(window.location.search);
-
-    // Parse route from URL
-    if (path.startsWith("/stock/")) {
-      const symbol = path.replace("/stock/", "").toUpperCase();
-      if (symbol) {
-        // Replace current state so we have proper history
-        history.replaceState(
-          { view: "stocks", stock: symbol },
-          "",
-          `/stock/${symbol}`,
-        );
-        // Navigate after login check completes
-        setTimeout(() => {
-          if (Storage.getCurrentUser()) {
-            this.navigateTo("stocks", false);
-            this.showStockDetail(symbol, false);
-          }
-        }, 100);
-        return;
-      }
-    }
-
-    // Map path to view
-    const viewMap = {
-      "/": "dashboard",
-      "/dashboard": "dashboard",
-      "/stocks": "stocks",
-      "/portfolio": "portfolio",
-      "/history": "history",
-      "/leaderboard": "leaderboard",
-      "/settings": "settings",
-    };
-
-    const view = viewMap[path] || "dashboard";
-    history.replaceState({ view }, "", path === "/" ? "/" : `/${view}`);
-  },
-
-  // Handle route change (from popstate or navigation)
-  handleRouteChange(state, updateHistory = true) {
+  // Handle route change (from popstate)
+  handleRouteChange(state) {
     if (!Storage.getCurrentUser()) return;
 
     const { view, stock } = state;
@@ -81,8 +40,8 @@ const App = {
       this.showStockDetail(stock, false);
     } else {
       this.navigateTo(view, false);
-      // If going back from stock detail to stocks list, hide stock detail
-      if (view === "stocks" && !stock) {
+      // If going back from stock detail, hide it
+      if (view === "stocks" || view === "dashboard") {
         document.getElementById("stock-detail").style.display = "none";
         document.getElementById("company-info-card").style.display = "none";
         document.getElementById("recommendations-card").style.display = "none";
@@ -91,19 +50,10 @@ const App = {
     }
   },
 
-  // Update browser URL
-  pushRoute(view, stock = null) {
-    let url, state;
-
-    if (stock) {
-      url = `/stock/${stock}`;
-      state = { view, stock };
-    } else {
-      url = view === "dashboard" ? "/" : `/${view}`;
-      state = { view };
-    }
-
-    history.pushState(state, "", url);
+  // Update history state (no URL changes)
+  pushState(view, stock = null) {
+    const state = stock ? { view, stock } : { view };
+    history.pushState(state, "");
   },
 
   // Check if user is logged in
@@ -348,7 +298,7 @@ const App = {
 
     // Update browser URL if needed
     if (updateHistory) {
-      this.pushRoute(view);
+      this.pushState(view);
     }
 
     // Update nav
@@ -515,8 +465,8 @@ const App = {
     container.querySelectorAll(".stock-item").forEach((item) => {
       item.addEventListener("click", () => {
         const symbol = item.dataset.symbol;
-        this.navigateTo("stocks");
-        this.showStockDetail(symbol);
+        this.navigateTo("stocks", false); // Don't push state here
+        this.showStockDetail(symbol); // This will push the stock state
       });
     });
   },
@@ -682,7 +632,7 @@ const App = {
 
     // Update browser URL
     if (updateHistory) {
-      this.pushRoute("stocks", symbol);
+      this.pushState("stocks", symbol);
     }
 
     // Initialize chart container
@@ -1010,8 +960,8 @@ const App = {
       listEl.querySelectorAll(".portfolio-item").forEach((item) => {
         item.addEventListener("click", () => {
           const symbol = item.dataset.symbol;
-          this.navigateTo("stocks");
-          this.showStockDetail(symbol);
+          this.navigateTo("stocks", false); // Don't push state here
+          this.showStockDetail(symbol); // This will push the stock state
         });
       });
     } catch (error) {
