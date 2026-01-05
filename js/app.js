@@ -456,8 +456,14 @@ const App = {
   renderStockItem(stock) {
     const changeClass = stock.percentChange >= 0 ? "positive" : "negative";
     const changeSign = stock.percentChange >= 0 ? "+" : "";
+    const companyInfo = getCompanyInfo(stock.symbol);
+    const logoHtml =
+      companyInfo && companyInfo.logo
+        ? `<img src="${companyInfo.logo}" alt="${stock.symbol}" class="stock-logo">`
+        : '<div class="stock-logo-placeholder"></div>';
     return `
       <li class="stock-item" data-symbol="${stock.symbol}">
+        ${logoHtml}
         <div class="stock-info">
           <span class="stock-symbol">${stock.symbol}</span>
           <span class="stock-name">${stock.name}${stock.description ? " - " + stock.description : ""}</span>

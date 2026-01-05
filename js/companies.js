@@ -125,6 +125,123 @@ De naam Meta komt van "metaverse" - een virtuele wereld waar je met een VR-bril 
 
 Netflix begon met het versturen van dvd's per post. Nu hebben ze meer dan 280 miljoen abonnees wereldwijd die series en films streamen. Ze geven elk jaar miljarden uit aan het maken van nieuwe content. Netflix heeft de manier waarop we tv kijken compleet veranderd.`,
   },
+  DIS: {
+    name: "Disney",
+    logo: "images/logos/disney.svg",
+    country: "Verenigde Staten",
+    founded: 1923,
+    description: `Disney is het grootste entertainmentbedrijf ter wereld! Ze maken films (Disney, Pixar, Marvel, Star Wars), hebben pretparken (Disneyland, Disney World) en streamingdienst Disney+.
+
+Walt Disney begon met het tekenen van tekenfilms, waaronder Mickey Mouse. Nu bezit Disney ook ESPN (sport), National Geographic, en 20th Century Studios. De Disney-parken trekken meer dan 150 miljoen bezoekers per jaar!`,
+  },
+  SBUX: {
+    name: "Starbucks",
+    logo: "images/logos/starbucks.svg",
+    country: "Verenigde Staten",
+    founded: 1971,
+    description: `Starbucks is de grootste koffieketen ter wereld. Je kent vast wel hun groene logo met de zeemeermin! Ze hebben meer dan 35.000 winkels in 80 landen.
+
+Starbucks verkoopt niet alleen koffie, maar ook thee, frappuccino's en snacks. Ze waren een van de eerste die "to go" koffie populair maakten. De naam komt van een personage uit het boek Moby Dick. Elke week komen meer dan 100 miljoen klanten bij Starbucks!`,
+  },
+  NKE: {
+    name: "Nike",
+    logo: "images/logos/nike.svg",
+    country: "Verenigde Staten",
+    founded: 1964,
+    description: `Nike is het grootste sportmerk ter wereld. Hun "swoosh" logo en slogan "Just Do It" zijn overal bekend. Ze maken schoenen, kleding en sportspullen.
+
+Nike is vernoemd naar de Griekse godin van de overwinning. Beroemde sporters zoals Michael Jordan, LeBron James en Cristiano Ronaldo hebben Nike-deals. Air Jordan sneakers zijn super populair! Nike sponsort ook veel voetbalclubs en olympische atleten.`,
+  },
+  MCD: {
+    name: "McDonald's",
+    logo: "images/logos/mcdonalds.svg",
+    country: "Verenigde Staten",
+    founded: 1940,
+    description: `McDonald's is de grootste fastfoodketen ter wereld met de beroemde gouden bogen. Ze verkopen hamburgers, frietjes, McNuggets en McFlurry's in meer dan 100 landen.
+
+Elke dag eten 69 miljoen mensen bij McDonald's - dat is bijna evenveel als alle mensen in Frankrijk! De Big Mac en Happy Meal zijn over de hele wereld bekend. McDonald's was een van de eerste restaurants met een drive-through waar je vanuit de auto kunt bestellen.`,
+  },
+  KO: {
+    name: "Coca-Cola",
+    logo: "images/logos/coca-cola.svg",
+    country: "Verenigde Staten",
+    founded: 1886,
+    description: `Coca-Cola maakt 's werelds bekendste frisdrank. Het rode logo en de speciale flessensvorm ken je vast wel! Elke dag worden er 2 miljard Coca-Cola drankjes gedronken.
+
+Het geheime recept van Coca-Cola wordt al meer dan 130 jaar bewaard in een kluis! Het bedrijf maakt ook Fanta, Sprite en Minute Maid. De kerstman in zijn rode pak werd populair door Coca-Cola reclames. Coca-Cola is een van de meest waardevolle merken ter wereld.`,
+  },
+  PEP: {
+    name: "PepsiCo",
+    logo: "images/logos/pepsi.svg",
+    country: "Verenigde Staten",
+    founded: 1965,
+    description: `PepsiCo maakt Pepsi cola, maar ook heel veel snacks die je kent! Lay's chips, Doritos, Cheetos en Quaker havermout zijn allemaal van PepsiCo.
+
+Pepsi en Coca-Cola zijn al meer dan 100 jaar concurrenten - dit heet de "Cola Wars"! PepsiCo heeft ook Tropicana sinaasappelsap, 7UP en Gatorade sportdrank. Het bedrijf verkoopt producten in meer dan 200 landen.`,
+  },
+  SPOT: {
+    name: "Spotify",
+    logo: "images/logos/spotify.svg",
+    country: "Zweden",
+    founded: 2006,
+    description: `Spotify is de populairste muziek-streaming app ter wereld. Je kunt er miljoenen liedjes en podcasts op luisteren. Het groene logo met geluidsgolven ken je vast!
+
+Spotify komt uit Zweden en heeft nu meer dan 600 miljoen gebruikers. Artiesten worden betaald per keer dat hun liedje wordt afgespeeld. Spotify heeft ook podcasts populair gemaakt. Je kunt gratis luisteren met reclames, of betalen voor Premium zonder reclames.`,
+  },
+  RBLX: {
+    name: "Roblox",
+    logo: "images/logos/roblox.svg",
+    country: "Verenigde Staten",
+    founded: 2004,
+    description: `Roblox is een online platform waar je games kunt spelen én zelf kunt maken! Er zijn miljoenen verschillende spelletjes gemaakt door gebruikers. Je speelt met een blokkerig poppetje dat je kunt aankleden.
+
+Meer dan 70 miljoen mensen spelen elke dag Roblox - vooral kinderen en tieners. Je kunt Robux kopen om speciale items te krijgen. Sommige mensen verdienen echt geld door Roblox-games te maken! Adopt Me en Brookhaven zijn super populaire Roblox-games.`,
+  },
+  EA: {
+    name: "Electronic Arts",
+    logo: "images/logos/ea.svg",
+    country: "Verenigde Staten",
+    founded: 1982,
+    description: `EA maakt populaire videogames zoals EA Sports FC (voorheen FIFA), Madden NFL, The Sims en Battlefield. Ze zijn een van de grootste gamebedrijven ter wereld.
+
+EA Sports FC is het populairste voetbalspel ter wereld! Miljoenen mensen spelen Ultimate Team om hun droomelftal te bouwen. EA maakt games voor PlayStation, Xbox, PC en mobiel. Ze bezitten ook Apex Legends en Need for Speed.`,
+  },
+  SONY: {
+    name: "Sony",
+    logo: "images/logos/sony.svg",
+    country: "Japan",
+    founded: 1946,
+    description: `Sony maakt de PlayStation - een van de populairste spelcomputers! De PS5 is de nieuwste versie. Sony maakt ook TV's, camera's, koptelefoons en muziek.
+
+Sony komt uit Japan en maakt ook films via Sony Pictures (Spider-Man!). Ze bezitten platenmaatschappijen met artiesten zoals Beyoncé en Harry Styles. De eerste PlayStation kwam uit in 1994 en sindsdien zijn er meer dan 500 miljoen PlayStations verkocht!`,
+  },
+  NTDOY: {
+    name: "Nintendo",
+    logo: "images/logos/nintendo.svg",
+    country: "Japan",
+    founded: 1889,
+    description: `Nintendo maakt de Switch spelcomputer en beroemde games met Mario, Zelda, Pokemon en Donkey Kong! Mario is een van de bekendste personages ter wereld.
+
+Nintendo bestaat al meer dan 130 jaar - ze begonnen met speelkaarten! De Game Boy, Wii en DS waren allemaal enorm populair. Pokemon is het succesvolste mediamerk ooit. Nintendo staat bekend om leuke, kleurrijke games die voor alle leeftijden zijn.`,
+  },
+  UBER: {
+    name: "Uber",
+    logo: "images/logos/uber.svg",
+    country: "Verenigde Staten",
+    founded: 2009,
+    description: `Uber is een app waarmee je een taxi kunt bestellen. Je ziet precies waar de auto is en betaalt via de app. Uber Eats bezorgt ook eten van restaurants.
+
+Uber heeft de taxi-industrie compleet veranderd! Nu kan iedereen met een auto Uber-chauffeur worden. De app werkt in meer dan 70 landen. Je kunt ook fietsen en scooters huren via Uber. Elke dag maken 28 miljoen mensen een Uber-ritje.`,
+  },
+  ABNB: {
+    name: "Airbnb",
+    logo: "images/logos/airbnb.svg",
+    country: "Verenigde Staten",
+    founded: 2008,
+    description: `Airbnb is een website waar mensen hun huis of kamer kunnen verhuren aan reizigers. In plaats van een hotel kun je in een echt huis of appartement slapen.
+
+De naam komt van "Air Bed and Breakfast" - de oprichters verhuurden luchtbedden in hun woonkamer! Nu staan er meer dan 7 miljoen accommodaties op Airbnb, van boomhutten tot kastelen. Je kunt ook "Ervaringen" boeken, zoals kooklessen of rondleidingen van locals.`,
+  },
 };
 
 // Get company info by symbol

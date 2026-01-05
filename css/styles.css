@@ -241,6 +241,11 @@ body {
     border-bottom: 1px solid var(--ft-grey-light);
     cursor: pointer;
     transition: background-color 0.2s;
+    gap: var(--spacing-md);
+}
+
+.stock-item .stock-info {
+    flex: 1;
 }
 
 .stock-item:hover {
@@ -737,104 +742,133 @@ body {
     }
 }
 
-
 .last-update {
-  text-align: right;
-  color: var(--ft-grey);
-  font-family: var(--font-sans);
-  font-size: 0.8rem;
-  margin-top: var(--spacing-sm);
-  font-style: italic;
+    text-align: right;
+    color: var(--ft-grey);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    margin-top: var(--spacing-sm);
+    font-style: italic;
 }
 
 .btn-small {
-  padding: 4px 8px;
-  font-size: 0.75rem;
+    padding: 4px 8px;
+    font-size: 0.75rem;
 }
 
 /* News items */
 .news-list {
-  list-style: none;
+    list-style: none;
 }
 
 .news-item {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--ft-grey-light);
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--ft-grey-light);
 }
 
 .news-item:last-child {
-  border-bottom: none;
+    border-bottom: none;
 }
 
 .news-item a {
-  text-decoration: none;
-  color: var(--ft-black);
+    text-decoration: none;
+    color: var(--ft-black);
 }
 
 .news-item a:hover .news-headline {
-  color: var(--ft-blue);
+    color: var(--ft-blue);
 }
 
 .news-headline {
-  font-weight: bold;
-  margin-bottom: var(--spacing-xs);
-  line-height: 1.4;
+    font-weight: bold;
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.4;
 }
 
 .news-meta {
-  font-family: var(--font-sans);
-  font-size: 0.8rem;
-  color: var(--ft-grey);
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    color: var(--ft-grey);
 }
 
 /* Recommendations */
 .recommendations-bar {
-  display: flex;
-  height: 32px;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: var(--spacing-md);
+    display: flex;
+    height: 32px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
 }
 
 .recommendations-bar .segment {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
-  font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: bold;
 }
 
-.recommendations-bar .strong-buy { background-color: #0a6e0a; }
-.recommendations-bar .buy { background-color: var(--ft-green); }
-.recommendations-bar .hold { background-color: #f0ad4e; }
-.recommendations-bar .sell { background-color: #e07070; }
-.recommendations-bar .strong-sell { background-color: var(--ft-red); }
+.recommendations-bar .strong-buy {
+    background-color: #0a6e0a;
+}
+.recommendations-bar .buy {
+    background-color: var(--ft-green);
+}
+.recommendations-bar .hold {
+    background-color: #f0ad4e;
+}
+.recommendations-bar .sell {
+    background-color: #e07070;
+}
+.recommendations-bar .strong-sell {
+    background-color: var(--ft-red);
+}
 
 .recommendations-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
 }
 
 .recommendations-legend span {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
 }
 
 .legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
 }
 
 .unavailable-message {
-  color: var(--ft-grey);
-  font-family: var(--font-sans);
-  font-style: italic;
-  padding: var(--spacing-md);
+    color: var(--ft-grey);
+    font-family: var(--font-sans);
+    font-style: italic;
+    padding: var(--spacing-md);
+}
+
+/* Stock list logos */
+.stock-logo {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.stock-logo-placeholder {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    background: var(--ft-grey-light);
+    border-radius: 4px;
+    flex-shrink: 0;
 }
