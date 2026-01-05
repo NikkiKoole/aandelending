@@ -250,10 +250,6 @@ const App = {
     });
 
     // Settings
-    document.getElementById("save-settings").addEventListener("click", () => {
-      this.saveSettings();
-    });
-
     document.getElementById("reset-account").addEventListener("click", () => {
       this.showConfirmModal(
         "Account resetten",
@@ -1068,23 +1064,8 @@ const App = {
 
   // Load settings view
   loadSettings() {
-    const settings = Settings.get();
     const username = Storage.getCurrentUser();
     document.getElementById("settings-username").textContent = username;
-    document.getElementById("fee-eu").value = settings.fees.eu;
-    document.getElementById("fee-us").value = settings.fees.us;
-  },
-
-  // Save settings
-  saveSettings() {
-    const feeEu = parseFloat(document.getElementById("fee-eu").value) || 0;
-    const feeUs = parseFloat(document.getElementById("fee-us").value) || 0;
-
-    Settings.save({
-      fees: { eu: feeEu, us: feeUs },
-    });
-
-    this.showToast("Instellingen opgeslagen", "success");
   },
 
   // Show confirmation modal
