@@ -446,35 +446,57 @@
                             style="
                                 display: flex;
                                 align-items: center;
+                                justify-content: space-between;
                                 gap: 16px;
                             "
                         >
-                            <img
-                                id="company-logo"
-                                src=""
-                                alt=""
+                            <div
                                 style="
-                                    width: 48px;
-                                    height: 48px;
-                                    object-fit: contain;
-                                    border-radius: 8px;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 16px;
                                 "
-                            />
-                            <div>
-                                <h2 class="card-title" id="company-name">
-                                    Bedrijfsnaam
-                                </h2>
-                                <span
+                            >
+                                <img
+                                    id="company-logo"
+                                    src=""
+                                    alt=""
                                     style="
-                                        font-family: var(--font-sans);
-                                        font-size: 0.85rem;
-                                        color: #807973;
+                                        width: 48px;
+                                        height: 48px;
+                                        object-fit: contain;
+                                        border-radius: 8px;
                                     "
+                                />
+                                <div>
+                                    <h2 class="card-title" id="company-name">
+                                        Bedrijfsnaam
+                                    </h2>
+                                    <span
+                                        style="
+                                            font-family: var(--font-sans);
+                                            font-size: 0.85rem;
+                                            color: #807973;
+                                        "
+                                    >
+                                        <span id="company-country">Land</span> ·
+                                        Opgericht in
+                                        <span id="company-founded">jaar</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div
+                                id="company-marketcap"
+                                class="company-marketcap"
+                                style="display: none"
+                            >
+                                <div
+                                    class="marketcap-value"
+                                    id="company-marketcap-value"
                                 >
-                                    <span id="company-country">Land</span> ·
-                                    Opgericht in
-                                    <span id="company-founded">jaar</span>
-                                </span>
+                                    €0 mld
+                                </div>
+                                <div class="marketcap-label">Marktwaarde</div>
                             </div>
                         </div>
                         <div

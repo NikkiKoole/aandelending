@@ -723,6 +723,16 @@ const App = {
       document.getElementById("company-description").textContent =
         companyInfo.description;
 
+      // Show market cap if available
+      const marketCapEl = document.getElementById("company-marketcap");
+      if (companyInfo.marketCapB) {
+        document.getElementById("company-marketcap-value").textContent =
+          `€${companyInfo.marketCapB} mld`;
+        marketCapEl.style.display = "block";
+      } else {
+        marketCapEl.style.display = "none";
+      }
+
       // Show fun fact if available
       const funFactEl = document.getElementById("company-funfact");
       if (companyInfo.funFact) {

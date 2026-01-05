@@ -133,6 +133,32 @@ body {
     justify-content: center;
 }
 
+/* Company market cap display */
+.company-marketcap {
+    text-align: right;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #0d7680 0%, #0a5a62 100%);
+    border-radius: 12px;
+    color: white;
+    min-width: 100px;
+}
+
+.marketcap-value {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.marketcap-label {
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
 /* Header */
 .header {
     background-color: var(--ft-pink-dark);
