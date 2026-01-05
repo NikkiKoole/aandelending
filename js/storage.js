@@ -8,10 +8,15 @@ const Storage = {
     SETTINGS: "aandelending_settings",
   },
 
-  // Get all users
+  // Get all users (as object)
   getUsers() {
     const data = localStorage.getItem(this.KEYS.USERS);
     return data ? JSON.parse(data) : {};
+  },
+
+  // Get all usernames (as array)
+  getAllUsers() {
+    return Object.keys(this.getUsers());
   },
 
   // Get a specific user

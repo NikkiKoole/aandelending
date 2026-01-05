@@ -62,6 +62,7 @@ const App = {
       "/stocks": "stocks",
       "/portfolio": "portfolio",
       "/history": "history",
+      "/leaderboard": "leaderboard",
       "/settings": "settings",
     };
 
@@ -251,9 +252,11 @@ const App = {
       this.showConfirmModal(
         "Account resetten",
         "Weet je zeker dat je je account wilt resetten? Al je aandelen en transacties worden verwijderd.",
-        () => {
+        async () => {
           const username = Storage.getCurrentUser();
           Storage.resetUser(username);
+          // Remove from online scoreboard (score will be outdated)
+          await Leaderboard.removeFromOnline(username);
           this.loadDashboard();
           this.showToast("Account gereset", "success");
         },
@@ -264,8 +267,10 @@ const App = {
       this.showConfirmModal(
         "Account verwijderen",
         "Weet je zeker dat je je account wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
-        () => {
+        async () => {
           const username = Storage.getCurrentUser();
+          // Remove from online scoreboard first
+          await Leaderboard.removeFromOnline(username);
           Storage.deleteUser(username);
           Storage.clearCurrentUser();
           this.showLogin();
@@ -277,6 +282,49 @@ const App = {
     // Modal
     document.getElementById("modal-cancel").addEventListener("click", () => {
       this.hideConfirmModal();
+    });
+
+    // Leaderboard toggle
+    document.querySelectorAll(".leaderboard-toggle button").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        document
+          .querySelectorAll(".leaderboard-toggle button")
+          .forEach((b) => b.classList.remove("active"));
+        e.target.classList.add("active");
+
+        const type = e.target.dataset.leaderboard;
+        document.getElementById("leaderboard-local").style.display =
+          type === "local" ? "block" : "none";
+        document.getElementById("leaderboard-online").style.display =
+          type === "online" ? "block" : "none";
+
+        if (type === "local") {
+          await this.loadLocalRankings();
+        } else {
+          await this.loadOnlineRankings();
+        }
+      });
+    });
+
+    // Share score button
+    document
+      .getElementById("share-score")
+      .addEventListener("click", async (e) => {
+        const btn = e.target;
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.textContent = "Bezig...";
+        try {
+          await this.shareScore();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Score Delen";
+        }
+      });
+
+    // Refresh online button
+    document.getElementById("refresh-online").addEventListener("click", () => {
+      this.loadOnlineRankings();
     });
   },
 
@@ -328,6 +376,9 @@ const App = {
         break;
       case "settings":
         this.loadSettings();
+        break;
+      case "leaderboard":
+        this.loadLeaderboard();
         break;
     }
   },
@@ -854,6 +905,60 @@ const App = {
     setTimeout(() => {
       toast.remove();
     }, 3000);
+  },
+
+  // Load leaderboard view
+  async loadLeaderboard() {
+    // Load local rankings by default
+    await this.loadLocalRankings();
+  },
+
+  // Load local rankings
+  async loadLocalRankings() {
+    const container = document.getElementById("local-rankings");
+    container.innerHTML =
+      '<div class="loading"><span class="spinner"></span> Laden...</div>';
+
+    try {
+      const rankings = await Leaderboard.getLocalRankings();
+      Leaderboard.renderTable(rankings, "local-rankings", false);
+    } catch (error) {
+      container.innerHTML =
+        '<p class="no-data">Fout bij laden van ranglijst</p>';
+      console.error("Failed to load local rankings:", error);
+    }
+  },
+
+  // Load online rankings
+  async loadOnlineRankings() {
+    const container = document.getElementById("online-rankings");
+    container.innerHTML =
+      '<div class="loading"><span class="spinner"></span> Laden...</div>';
+
+    try {
+      const rankings = await Leaderboard.fetchOnlineScores();
+      Leaderboard.renderTable(rankings, "online-rankings", true);
+    } catch (error) {
+      container.innerHTML =
+        '<p class="no-data">Fout bij laden van online scores. Controleer je internetverbinding.</p>';
+      console.error("Failed to load online rankings:", error);
+    }
+  },
+
+  // Share score online
+  async shareScore() {
+    try {
+      const score = await Leaderboard.uploadScore();
+      this.showToast(
+        `Score gedeeld! Portefeuille: ${Leaderboard.formatCurrency(score.portfolioValue)}`,
+        "success",
+      );
+      // Refresh online rankings
+      await this.loadOnlineRankings();
+    } catch (error) {
+      this.showToast(error.message || "Fout bij delen van score", "error");
+      console.error("Failed to share score:", error);
+    }
   },
 };
 
