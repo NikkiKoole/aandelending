@@ -431,8 +431,7 @@ const App = {
   // Load popular stocks
   async loadPopularStocks() {
     const container = document.getElementById("popular-stocks");
-    container.innerHTML =
-      '<li class="loading"><span class="spinner"></span> Laden...</li>';
+    // Don't replace skeleton with spinner - let skeletons show during load
 
     try {
       const stocks = await API.getPopularStocksWithPrices();
@@ -497,6 +496,18 @@ const App = {
           });
         });
         container.innerHTML = html;
+        break;
+
+      case "marketcap":
+        // Sort by market cap (largest first)
+        stocks.sort((a, b) => {
+          const capA = getCompanyInfo(a.symbol)?.marketCapB || 0;
+          const capB = getCompanyInfo(b.symbol)?.marketCapB || 0;
+          return capB - capA;
+        });
+        container.innerHTML = stocks
+          .map((stock) => this.renderStockItem(stock))
+          .join("");
         break;
     }
 
@@ -759,9 +770,7 @@ const App = {
   async loadMarketNews() {
     const content = document.getElementById("market-news-content");
     if (!content) return;
-
-    content.innerHTML =
-      '<div class="loading"><span class="spinner"></span> Laden...</div>';
+    // Don't replace skeleton with spinner - let skeletons show during load
 
     try {
       const news = await API.getMarketNews();

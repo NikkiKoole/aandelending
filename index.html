@@ -17,6 +17,12 @@
             href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>"
         />
         <link rel="stylesheet" href="css/styles.css" />
+        <style>
+            /* Prevent FOUC - hide body until CSS loads */
+            body {
+                opacity: 0;
+            }
+        </style>
     </head>
     <body>
         <!-- Login Screen -->
@@ -92,22 +98,26 @@
                         <div class="stat-card">
                             <div class="stat-label">Beschikbaar saldo</div>
                             <div class="stat-value" id="stat-balance">
-                                €0,00
+                                <div class="skeleton skeleton-stat-value"></div>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Portefeuille waarde</div>
                             <div class="stat-value" id="stat-portfolio">
-                                €0,00
+                                <div class="skeleton skeleton-stat-value"></div>
                             </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Totale waarde</div>
-                            <div class="stat-value" id="stat-total">€0,00</div>
+                            <div class="stat-value" id="stat-total">
+                                <div class="skeleton skeleton-stat-value"></div>
+                            </div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-label">Winst / Verlies</div>
-                            <div class="stat-value" id="stat-profit">€0,00</div>
+                            <div class="stat-value" id="stat-profit">
+                                <div class="skeleton skeleton-stat-value"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -127,11 +137,94 @@
                                 </option>
                                 <option value="change">Dagwijziging %</option>
                                 <option value="sector">Sector</option>
+                                <option value="marketcap">Marktwaarde</option>
                             </select>
                         </div>
                         <ul class="stock-list" id="popular-stocks">
-                            <li class="loading">
-                                <span class="spinner"></span> Laden...
+                            <li class="skeleton-stock-item">
+                                <div class="skeleton skeleton-logo"></div>
+                                <div class="skeleton-stock-info">
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-medium"
+                                    ></div>
+                                </div>
+                                <div class="skeleton-stock-price">
+                                    <div class="skeleton skeleton-text"></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                </div>
+                            </li>
+                            <li class="skeleton-stock-item">
+                                <div class="skeleton skeleton-logo"></div>
+                                <div class="skeleton-stock-info">
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-medium"
+                                    ></div>
+                                </div>
+                                <div class="skeleton-stock-price">
+                                    <div class="skeleton skeleton-text"></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                </div>
+                            </li>
+                            <li class="skeleton-stock-item">
+                                <div class="skeleton skeleton-logo"></div>
+                                <div class="skeleton-stock-info">
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-medium"
+                                    ></div>
+                                </div>
+                                <div class="skeleton-stock-price">
+                                    <div class="skeleton skeleton-text"></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                </div>
+                            </li>
+                            <li class="skeleton-stock-item">
+                                <div class="skeleton skeleton-logo"></div>
+                                <div class="skeleton-stock-info">
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-medium"
+                                    ></div>
+                                </div>
+                                <div class="skeleton-stock-price">
+                                    <div class="skeleton skeleton-text"></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                </div>
+                            </li>
+                            <li class="skeleton-stock-item">
+                                <div class="skeleton skeleton-logo"></div>
+                                <div class="skeleton-stock-info">
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-medium"
+                                    ></div>
+                                </div>
+                                <div class="skeleton-stock-price">
+                                    <div class="skeleton skeleton-text"></div>
+                                    <div
+                                        class="skeleton skeleton-text skeleton-text-short"
+                                    ></div>
+                                </div>
                             </li>
                         </ul>
                     </div>
@@ -142,8 +235,35 @@
                             <h2 class="card-title">Marktnieuws</h2>
                         </div>
                         <div id="market-news-content">
-                            <div class="loading">
-                                <span class="spinner"></span> Laden...
+                            <div class="skeleton-news-item">
+                                <div
+                                    class="skeleton skeleton-text"
+                                    style="width: 90%; height: 1.2em"
+                                ></div>
+                                <div
+                                    class="skeleton skeleton-text skeleton-text-short"
+                                    style="margin-top: 8px"
+                                ></div>
+                            </div>
+                            <div class="skeleton-news-item">
+                                <div
+                                    class="skeleton skeleton-text"
+                                    style="width: 85%; height: 1.2em"
+                                ></div>
+                                <div
+                                    class="skeleton skeleton-text skeleton-text-short"
+                                    style="margin-top: 8px"
+                                ></div>
+                            </div>
+                            <div class="skeleton-news-item">
+                                <div
+                                    class="skeleton skeleton-text"
+                                    style="width: 80%; height: 1.2em"
+                                ></div>
+                                <div
+                                    class="skeleton skeleton-text skeleton-text-short"
+                                    style="margin-top: 8px"
+                                ></div>
                             </div>
                         </div>
                     </div>
@@ -234,7 +354,19 @@
                                 </button>
                             </div>
 
-                            <div class="chart-container" id="stock-chart"></div>
+                            <div class="chart-container" id="stock-chart">
+                                <!-- Chart skeleton -->
+                                <div class="skeleton-chart">
+                                    <div
+                                        class="skeleton"
+                                        style="
+                                            width: 100%;
+                                            height: 100%;
+                                            border-radius: 4px;
+                                        "
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="card">
