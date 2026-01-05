@@ -1,0 +1,17 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "aandelending",
+      "dependencies": {
+        "lightweight-charts": "^4.1.0",
+      },
+    },
+  },
+  "packages": {
+    "fancy-canvas": ["fancy-canvas@2.1.0", "", {}, "sha512-nifxXJ95JNLFR2NgRV4/MxVP45G9909wJTEKz5fg/TZS20JJZA6hfgRVh/bC9bwl2zBtBNcYPjiBE4njQHVBwQ=="],
+
+    "lightweight-charts": ["lightweight-charts@4.2.3", "", { "dependencies": { "fancy-canvas": "2.1.0" } }, "sha512-5kS/2hY3wNYNzhnS8Gb+GAS07DX8GPF2YVDnd2NMC85gJVQ6RLU6YrXNgNJ6eg0AnWPwCnvaGtYmGky3HiLQEw=="],
+  }
+}

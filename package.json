@@ -1,0 +1,16 @@
+{
+  "name": "aandelending",
+  "version": "1.0.0",
+  "description": "Stock trading simulator game for kids",
+  "main": "server.js",
+  "scripts": {
+    "start": "bun run server.js",
+    "dev": "bun --watch run server.js"
+  },
+  "dependencies": {
+    "lightweight-charts": "^4.1.0"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "MIT"
+}

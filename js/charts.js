@@ -1,0 +1,769 @@
+// Chart rendering
+
+const Charts = {
+  // Current chart instance
+  chartInstance: null,
+  currentType: "simple",
+  currentRange: "1mo",
+  candles: null,
+  onRangeChange: null,
+  showTrendlines: false,
+
+  // Colors
+  colors: {
+    line: "#0D7680",
+    up: "#0A8A0A",
+    down: "#CC0000",
+    background: "#FFFFFF",
+    grid: "#E8E8E8",
+    gridLight: "#F5F5F5",
+    text: "#807973",
+    textDark: "#333333",
+    sma20: "#FF9500", // Orange for 20-day MA
+    sma50: "#007AFF", // Blue for 50-day MA
+  },
+
+  // Calculate Simple Moving Average
+  calculateSMA(candles, period) {
+    const sma = [];
+    for (let i = 0; i < candles.length; i++) {
+      if (i < period - 1) {
+        sma.push(null); // Not enough data yet
+      } else {
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+          sum += candles[i - j].close;
+        }
+        sma.push(sum / period);
+      }
+    }
+    return sma;
+  },
+
+  // Get appropriate MA periods based on data length and range
+  getMAPeriods(candleCount, range) {
+    // For shorter ranges, use shorter periods
+    if (range === "1d" || range === "5d") {
+      return { short: 5, long: 10 };
+    } else if (range === "1mo") {
+      return { short: 5, long: 10 };
+    } else if (range === "6mo" || range === "ytd") {
+      return { short: 20, long: 50 };
+    } else {
+      // 1y, 5y, max
+      return { short: 20, long: 50 };
+    }
+  },
+
+  // Time ranges
+  ranges: [
+    { key: "1d", label: "1D", interval: "5m" },
+    { key: "5d", label: "5D", interval: "15m" },
+    { key: "1mo", label: "1M", interval: "1d" },
+    { key: "6mo", label: "6M", interval: "1d" },
+    { key: "ytd", label: "YTD", interval: "1d" },
+    { key: "1y", label: "1J", interval: "1d" },
+    { key: "5y", label: "5J", interval: "1wk" },
+    { key: "max", label: "Max", interval: "1mo" },
+  ],
+
+  // Initialize chart container
+  init(containerId) {
+    this.container = document.getElementById(containerId);
+  },
+
+  // Set range change callback
+  setRangeChangeCallback(callback) {
+    this.onRangeChange = callback;
+  },
+
+  // Clear existing chart
+  clear() {
+    if (this.chartInstance) {
+      if (this.chartInstance.remove) {
+        this.chartInstance.remove();
+      }
+      this.chartInstance = null;
+    }
+    if (this.container) {
+      this.container.innerHTML = "";
+    }
+  },
+
+  // Format date based on range
+  formatDateForRange(timestamp, range) {
+    const date = new Date(timestamp * 1000);
+    const options = { month: "short", day: "numeric" };
+
+    if (range === "1d" || range === "5d") {
+      return date.toLocaleTimeString("nl-NL", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } else if (range === "5y" || range === "max") {
+      return date.toLocaleDateString("nl-NL", {
+        month: "short",
+        year: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("nl-NL", options);
+  },
+
+  // Format full date for tooltip
+  formatFullDate(timestamp) {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString("nl-NL", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  },
+
+  // Render simple line chart with range selector and tooltip
+  renderSimpleChart(candles, range = "1mo") {
+    this.clear();
+    this.currentType = "simple";
+    this.currentRange = range;
+    this.candles = candles;
+
+    if (!candles || candles.length === 0) {
+      this.container.innerHTML =
+        '<div class="loading">Geen data beschikbaar</div>';
+      return;
+    }
+
+    // Create wrapper
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText =
+      "display: flex; flex-direction: column; height: 100%;";
+
+    // Create range selector
+    const rangeSelector = document.createElement("div");
+    rangeSelector.style.cssText =
+      "display: flex; gap: 4px; padding: 8px 0; border-bottom: 1px solid #E8E8E8; margin-bottom: 8px;";
+
+    this.ranges.forEach((r) => {
+      const btn = document.createElement("button");
+      btn.textContent = r.label;
+      btn.dataset.range = r.key;
+      const isActive = r.key === range;
+      btn.style.cssText = `
+        padding: 6px 12px;
+        border: none;
+        background: ${isActive ? "#F0F0F0" : "transparent"};
+        color: ${isActive ? "#0D7680" : "#807973"};
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+        font-weight: ${isActive ? "600" : "400"};
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+      `;
+      if (isActive) {
+        btn.style.borderBottom = "2px solid #0D7680";
+      }
+      btn.addEventListener("click", () => {
+        if (this.onRangeChange) {
+          this.onRangeChange(r.key);
+        }
+      });
+      btn.addEventListener("mouseenter", () => {
+        if (r.key !== this.currentRange) {
+          btn.style.background = "#F5F5F5";
+        }
+      });
+      btn.addEventListener("mouseleave", () => {
+        if (r.key !== this.currentRange) {
+          btn.style.background = "transparent";
+        }
+      });
+      rangeSelector.appendChild(btn);
+    });
+
+    wrapper.appendChild(rangeSelector);
+
+    // Create chart container
+    const chartWrapper = document.createElement("div");
+    chartWrapper.style.cssText = "flex: 1; position: relative; min-height: 0;";
+
+    const canvas = document.createElement("canvas");
+    canvas.style.cssText = "width: 100%; height: 100%;";
+    chartWrapper.appendChild(canvas);
+
+    // Create tooltip
+    const tooltip = document.createElement("div");
+    tooltip.style.cssText = `
+      position: absolute;
+      background: white;
+      border: 1px solid #E8E8E8;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 10;
+    `;
+    chartWrapper.appendChild(tooltip);
+
+    // Create hover dot
+    const hoverDot = document.createElement("div");
+    hoverDot.style.cssText = `
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      transform: translate(-50%, -50%);
+    `;
+    chartWrapper.appendChild(hoverDot);
+
+    // Create vertical line
+    const verticalLine = document.createElement("div");
+    verticalLine.style.cssText = `
+      position: absolute;
+      width: 1px;
+      background: #CCCCCC;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    `;
+    chartWrapper.appendChild(verticalLine);
+
+    wrapper.appendChild(chartWrapper);
+    this.container.appendChild(wrapper);
+
+    // Setup canvas
+    const ctx = canvas.getContext("2d");
+    const rect = chartWrapper.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const padding = { top: 20, right: 70, bottom: 35, left: 10 };
+    const width = rect.width - padding.left - padding.right;
+    const height = rect.height - padding.top - padding.bottom;
+
+    // Get price range with some padding
+    const prices = candles.map((c) => c.close);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const pricePadding = (maxPrice - minPrice) * 0.1 || maxPrice * 0.05;
+    const adjustedMin = minPrice - pricePadding;
+    const adjustedMax = maxPrice + pricePadding;
+    const priceRange = adjustedMax - adjustedMin;
+
+    // Calculate scale
+    const xScale = width / (candles.length - 1 || 1);
+    const yScale = height / priceRange;
+
+    // Determine if up or down
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const lineColor = isUp ? this.colors.up : this.colors.down;
+
+    // Draw background
+    ctx.fillStyle = this.colors.background;
+    ctx.fillRect(0, 0, rect.width, rect.height);
+
+    // Draw horizontal grid lines (dashed)
+    ctx.strokeStyle = this.colors.grid;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+
+    const gridLines = 5;
+    for (let i = 0; i <= gridLines; i++) {
+      const y = padding.top + (height / gridLines) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(padding.left + width, y);
+      ctx.stroke();
+
+      // Price labels on the right
+      const price = adjustedMax - (priceRange / gridLines) * i;
+      ctx.fillStyle = this.colors.text;
+      ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(this.formatPrice(price), padding.left + width + 8, y + 4);
+    }
+    ctx.setLineDash([]);
+
+    // Calculate points for the line
+    const points = candles.map((candle, i) => ({
+      x: padding.left + i * xScale,
+      y: padding.top + (adjustedMax - candle.close) * yScale,
+      candle: candle,
+    }));
+
+    // Draw gradient fill under line
+    const gradient = ctx.createLinearGradient(
+      0,
+      padding.top,
+      0,
+      padding.top + height,
+    );
+    if (isUp) {
+      gradient.addColorStop(0, "rgba(10, 138, 10, 0.15)");
+      gradient.addColorStop(1, "rgba(10, 138, 10, 0.02)");
+    } else {
+      gradient.addColorStop(0, "rgba(204, 0, 0, 0.15)");
+      gradient.addColorStop(1, "rgba(204, 0, 0, 0.02)");
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    points.forEach((point, i) => {
+      if (i > 0) ctx.lineTo(point.x, point.y);
+    });
+    ctx.lineTo(points[points.length - 1].x, padding.top + height);
+    ctx.lineTo(points[0].x, padding.top + height);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // Draw line
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    points.forEach((point, i) => {
+      if (i === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+    ctx.stroke();
+
+    // Draw Moving Averages (trendlines)
+    if (this.showTrendlines && candles.length >= 10) {
+      const maPeriods = this.getMAPeriods(candles.length, range);
+      const smaShort = this.calculateSMA(candles, maPeriods.short);
+      const smaLong = this.calculateSMA(candles, maPeriods.long);
+
+      // Draw short MA (orange)
+      ctx.strokeStyle = this.colors.sma20;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      let started = false;
+      smaShort.forEach((value, i) => {
+        if (value !== null) {
+          const x = padding.left + i * xScale;
+          const y = padding.top + (adjustedMax - value) * yScale;
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+      });
+      ctx.stroke();
+
+      // Draw long MA (blue)
+      ctx.strokeStyle = this.colors.sma50;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      started = false;
+      smaLong.forEach((value, i) => {
+        if (value !== null) {
+          const x = padding.left + i * xScale;
+          const y = padding.top + (adjustedMax - value) * yScale;
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+      });
+      ctx.stroke();
+    }
+
+    // Draw date labels
+    ctx.fillStyle = this.colors.text;
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+
+    const labelCount = Math.min(6, candles.length);
+    const step = Math.max(1, Math.floor(candles.length / labelCount));
+    for (let i = 0; i < candles.length; i += step) {
+      const x = padding.left + i * xScale;
+      const label = this.formatDateForRange(candles[i].time, range);
+      ctx.fillText(label, x, rect.height - 8);
+    }
+    // Always show last date
+    if (candles.length > 1) {
+      const lastX = padding.left + (candles.length - 1) * xScale;
+      const lastLabel = this.formatDateForRange(
+        candles[candles.length - 1].time,
+        range,
+      );
+      ctx.fillText(lastLabel, lastX, rect.height - 8);
+    }
+
+    // Draw legend for MAs
+    if (this.showTrendlines && candles.length >= 10) {
+      const maPeriods = this.getMAPeriods(candles.length, range);
+      const legendY = padding.top + 12;
+
+      // Short MA legend
+      ctx.fillStyle = this.colors.sma20;
+      ctx.fillRect(padding.left, legendY - 6, 16, 3);
+      ctx.fillStyle = this.colors.text;
+      ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`MA${maPeriods.short}`, padding.left + 20, legendY);
+
+      // Long MA legend
+      ctx.fillStyle = this.colors.sma50;
+      ctx.fillRect(padding.left + 55, legendY - 6, 16, 3);
+      ctx.fillStyle = this.colors.text;
+      ctx.fillText(`MA${maPeriods.long}`, padding.left + 75, legendY);
+    }
+
+    // Mouse interaction
+    const handleMouseMove = (e) => {
+      const canvasRect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - canvasRect.left;
+      const mouseY = e.clientY - canvasRect.top;
+
+      // Find closest point
+      let closestPoint = null;
+      let closestDist = Infinity;
+      let closestIndex = -1;
+
+      points.forEach((point, i) => {
+        const dist = Math.abs(mouseX - point.x);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestPoint = point;
+          closestIndex = i;
+        }
+      });
+
+      if (closestPoint && closestDist < 50) {
+        // Show tooltip
+        const priceText = Settings.formatCurrency(closestPoint.candle.close);
+        const dateText = this.formatFullDate(closestPoint.candle.time);
+        tooltip.innerHTML = `<strong>${priceText}</strong><br><span style="color: #807973;">${dateText}</span>`;
+
+        // Position tooltip
+        let tooltipX = closestPoint.x + 15;
+        let tooltipY = closestPoint.y - 40;
+
+        // Keep tooltip in bounds
+        if (tooltipX + 120 > rect.width) {
+          tooltipX = closestPoint.x - 130;
+        }
+        if (tooltipY < 10) {
+          tooltipY = closestPoint.y + 15;
+        }
+
+        tooltip.style.left = tooltipX + "px";
+        tooltip.style.top = tooltipY + "px";
+        tooltip.style.opacity = "1";
+
+        // Show and position dot
+        hoverDot.style.left = closestPoint.x + "px";
+        hoverDot.style.top = closestPoint.y + "px";
+        hoverDot.style.backgroundColor = lineColor;
+        hoverDot.style.opacity = "1";
+
+        // Show vertical line
+        verticalLine.style.left = closestPoint.x + "px";
+        verticalLine.style.top = padding.top + "px";
+        verticalLine.style.height = height + "px";
+        verticalLine.style.opacity = "1";
+      }
+    };
+
+    const handleMouseLeave = () => {
+      tooltip.style.opacity = "0";
+      hoverDot.style.opacity = "0";
+      verticalLine.style.opacity = "0";
+    };
+
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseleave", handleMouseLeave);
+
+    // Store instance reference for cleanup
+    this.chartInstance = {
+      remove: () => {
+        canvas.removeEventListener("mousemove", handleMouseMove);
+        canvas.removeEventListener("mouseleave", handleMouseLeave);
+        wrapper.remove();
+      },
+    };
+  },
+
+  // Format price without currency symbol for axis
+  formatPrice(price) {
+    if (price >= 1000) {
+      return price.toLocaleString("nl-NL", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+    }
+    return price.toLocaleString("nl-NL", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  },
+
+  // Render candlestick chart (using Lightweight Charts if available, else fallback)
+  renderCandlestickChart(candles, range = "1mo") {
+    this.clear();
+    this.currentType = "candlestick";
+    this.currentRange = range;
+    this.candles = candles;
+
+    if (!candles || candles.length === 0) {
+      this.container.innerHTML =
+        '<div class="loading">Geen data beschikbaar</div>';
+      return;
+    }
+
+    // Create wrapper with range selector
+    const wrapper = document.createElement("div");
+    wrapper.style.cssText =
+      "display: flex; flex-direction: column; height: 100%;";
+
+    // Create range selector (same as simple chart)
+    const rangeSelector = document.createElement("div");
+    rangeSelector.style.cssText =
+      "display: flex; gap: 4px; padding: 8px 0; border-bottom: 1px solid #E8E8E8; margin-bottom: 8px;";
+
+    this.ranges.forEach((r) => {
+      const btn = document.createElement("button");
+      btn.textContent = r.label;
+      btn.dataset.range = r.key;
+      const isActive = r.key === range;
+      btn.style.cssText = `
+        padding: 6px 12px;
+        border: none;
+        background: ${isActive ? "#F0F0F0" : "transparent"};
+        color: ${isActive ? "#0D7680" : "#807973"};
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 13px;
+        font-weight: ${isActive ? "600" : "400"};
+        cursor: pointer;
+        border-radius: 4px;
+      `;
+      btn.addEventListener("click", () => {
+        if (this.onRangeChange) {
+          this.onRangeChange(r.key);
+        }
+      });
+      rangeSelector.appendChild(btn);
+    });
+
+    wrapper.appendChild(rangeSelector);
+
+    // Create chart container
+    const chartContainer = document.createElement("div");
+    chartContainer.style.cssText = "flex: 1; min-height: 0;";
+    wrapper.appendChild(chartContainer);
+
+    this.container.appendChild(wrapper);
+
+    // Check if LightweightCharts is available
+    if (typeof LightweightCharts !== "undefined") {
+      this.renderWithLightweightCharts(candles, chartContainer);
+    } else {
+      this.renderCanvasCandlestick(candles, chartContainer);
+    }
+  },
+
+  // Render using Lightweight Charts library
+  renderWithLightweightCharts(candles, container) {
+    const chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      layout: {
+        background: { color: this.colors.background },
+        textColor: "#807973",
+      },
+      grid: {
+        vertLines: { color: this.colors.gridLight },
+        horzLines: { color: this.colors.grid },
+      },
+      rightPriceScale: {
+        borderColor: this.colors.grid,
+      },
+      timeScale: {
+        borderColor: this.colors.grid,
+        timeVisible: true,
+      },
+      handleScroll: false,
+      handleScale: false,
+    });
+
+    const candlestickSeries = chart.addCandlestickSeries({
+      upColor: this.colors.up,
+      downColor: this.colors.down,
+      borderUpColor: this.colors.up,
+      borderDownColor: this.colors.down,
+      wickUpColor: this.colors.up,
+      wickDownColor: this.colors.down,
+    });
+
+    candlestickSeries.setData(candles);
+
+    // Add Moving Averages as line series
+    if (this.showTrendlines && candles.length >= 10) {
+      const maPeriods = this.getMAPeriods(candles.length, this.currentRange);
+      const smaShort = this.calculateSMA(candles, maPeriods.short);
+      const smaLong = this.calculateSMA(candles, maPeriods.long);
+
+      // Short MA (orange)
+      const smaShortSeries = chart.addLineSeries({
+        color: this.colors.sma20,
+        lineWidth: 2,
+        title: `MA${maPeriods.short}`,
+      });
+      const smaShortData = candles
+        .map((c, i) =>
+          smaShort[i] !== null ? { time: c.time, value: smaShort[i] } : null,
+        )
+        .filter((d) => d !== null);
+      smaShortSeries.setData(smaShortData);
+
+      // Long MA (blue)
+      const smaLongSeries = chart.addLineSeries({
+        color: this.colors.sma50,
+        lineWidth: 2,
+        title: `MA${maPeriods.long}`,
+      });
+      const smaLongData = candles
+        .map((c, i) =>
+          smaLong[i] !== null ? { time: c.time, value: smaLong[i] } : null,
+        )
+        .filter((d) => d !== null);
+      smaLongSeries.setData(smaLongData);
+    }
+
+    chart.timeScale().fitContent();
+
+    this.chartInstance = chart;
+
+    // Handle resize
+    const resizeObserver = new ResizeObserver(() => {
+      chart.applyOptions({
+        width: container.clientWidth,
+        height: container.clientHeight,
+      });
+    });
+    resizeObserver.observe(container);
+  },
+
+  // Fallback canvas-based candlestick chart
+  renderCanvasCandlestick(candles, container) {
+    const canvas = document.createElement("canvas");
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    container.appendChild(canvas);
+
+    const ctx = canvas.getContext("2d");
+    const rect = container.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    const padding = { top: 20, right: 70, bottom: 35, left: 10 };
+    const width = canvas.width - padding.left - padding.right;
+    const height = canvas.height - padding.top - padding.bottom;
+
+    // Get price range
+    const allPrices = candles.flatMap((c) => [c.high, c.low]);
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+    const pricePadding = (maxPrice - minPrice) * 0.1;
+    const adjustedMin = minPrice - pricePadding;
+    const adjustedMax = maxPrice + pricePadding;
+    const priceRange = adjustedMax - adjustedMin;
+
+    // Calculate scale
+    const candleWidth = Math.max(3, width / candles.length - 2);
+    const xScale = width / candles.length;
+    const yScale = height / priceRange;
+
+    // Draw background
+    ctx.fillStyle = this.colors.background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid lines
+    ctx.strokeStyle = this.colors.grid;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    for (let i = 0; i <= 5; i++) {
+      const y = padding.top + (height / 5) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(padding.left + width, y);
+      ctx.stroke();
+
+      const price = adjustedMax - (priceRange / 5) * i;
+      ctx.fillStyle = this.colors.text;
+      ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(this.formatPrice(price), padding.left + width + 8, y + 4);
+    }
+    ctx.setLineDash([]);
+
+    // Draw candles
+    candles.forEach((candle, i) => {
+      const x = padding.left + i * xScale + xScale / 2;
+      const isUp = candle.close >= candle.open;
+      const color = isUp ? this.colors.up : this.colors.down;
+
+      // Draw wick
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, padding.top + (adjustedMax - candle.high) * yScale);
+      ctx.lineTo(x, padding.top + (adjustedMax - candle.low) * yScale);
+      ctx.stroke();
+
+      // Draw body
+      const bodyTop =
+        padding.top +
+        (adjustedMax - Math.max(candle.open, candle.close)) * yScale;
+      const bodyHeight = Math.abs(candle.close - candle.open) * yScale || 1;
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
+    });
+
+    // Draw date labels
+    ctx.fillStyle = this.colors.text;
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textAlign = "center";
+
+    const labelCount = Math.min(6, candles.length);
+    const step = Math.max(1, Math.floor(candles.length / labelCount));
+    for (let i = 0; i < candles.length; i += step) {
+      const x = padding.left + i * xScale + xScale / 2;
+      const label = this.formatDateForRange(candles[i].time, this.currentRange);
+      ctx.fillText(label, x, canvas.height - 8);
+    }
+
+    this.chartInstance = { remove: () => canvas.remove() };
+  },
+
+  // Toggle between chart types
+  toggle(candles) {
+    if (this.currentType === "simple") {
+      this.renderCandlestickChart(candles, this.currentRange);
+    } else {
+      this.renderSimpleChart(candles, this.currentRange);
+    }
+  },
+};

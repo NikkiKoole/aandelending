@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="nl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Aandelending - Beursspel</title>
+        <link
+            rel="icon"
+            href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>"
+        />
+        <link rel="stylesheet" href="/css/styles.css" />
+    </head>
+    <body>
+        <!-- Login Screen -->
+        <div id="login-screen" class="login-container">
+            <h1>Aandelending</h1>
+            <p>Leer handelen in aandelen met nepgeld</p>
+
+            <div id="existing-users" style="display: none">
+                <p class="form-label">Kies een bestaande speler:</p>
+                <ul class="user-list" id="user-list"></ul>
+                <div class="divider"><span>of</span></div>
+            </div>
+
+            <form id="new-user-form">
+                <div class="form-group">
+                    <label class="form-label" for="username"
+                        >Nieuwe speler</label
+                    >
+                    <input
+                        type="text"
+                        id="username"
+                        class="form-input"
+                        placeholder="Voer je naam in..."
+                        required
+                    />
+                </div>
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                    style="width: 100%"
+                >
+                    Start met spelen
+                </button>
+            </form>
+        </div>
+
+        <!-- Main App -->
+        <div id="app" style="display: none">
+            <!-- Header -->
+            <header class="header">
+                <h1>Aandelending</h1>
+                <div class="header-user">
+                    <div class="header-balance">
+                        Saldo: <strong id="header-balance">€0,00</strong>
+                    </div>
+                    <button id="logout-btn" class="btn btn-secondary">
+                        Uitloggen
+                    </button>
+                </div>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li>
+                        <a href="#" data-view="dashboard" class="active"
+                            >Dashboard</a
+                        >
+                    </li>
+                    <li><a href="#" data-view="stocks">Aandelen</a></li>
+                    <li><a href="#" data-view="portfolio">Portefeuille</a></li>
+                    <li><a href="#" data-view="history">Transacties</a></li>
+                    <li><a href="#" data-view="settings">Instellingen</a></li>
+                </ul>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="main">
+                <!-- Dashboard View -->
+                <section id="view-dashboard" class="view active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Beschikbaar saldo</div>
+                            <div class="stat-value" id="stat-balance">
+                                €0,00
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Portefeuille waarde</div>
+                            <div class="stat-value" id="stat-portfolio">
+                                €0,00
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Totale waarde</div>
+                            <div class="stat-value" id="stat-total">€0,00</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Winst / Verlies</div>
+                            <div class="stat-value" id="stat-profit">€0,00</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Populaire aandelen</h2>
+                        </div>
+                        <ul class="stock-list" id="popular-stocks">
+                            <li class="loading">
+                                <span class="spinner"></span> Laden...
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Stocks View -->
+                <section id="view-stocks" class="view">
+                    <div class="search-box">
+                        <input
+                            type="text"
+                            class="search-input"
+                            id="stock-search"
+                            placeholder="Zoek aandeel (bijv. AAPL, ASML)..."
+                        />
+                        <div class="search-results" id="search-results"></div>
+                    </div>
+
+                    <div id="stock-detail" style="display: none">
+                        <div class="card">
+                            <div
+                                class="card-header"
+                                style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                "
+                            >
+                                <div>
+                                    <h2 class="card-title" id="detail-symbol">
+                                        AAPL
+                                    </h2>
+                                    <span class="stock-name" id="detail-name"
+                                        >Apple Inc.</span
+                                    >
+                                </div>
+                                <div style="text-align: right">
+                                    <div
+                                        class="stock-current-price"
+                                        id="detail-price"
+                                    >
+                                        €0,00
+                                    </div>
+                                    <div
+                                        class="stock-change"
+                                        id="detail-change"
+                                    >
+                                        +0,00%
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-toggle">
+                                <button
+                                    class="btn btn-secondary active"
+                                    data-chart="simple"
+                                >
+                                    Eenvoudig
+                                </button>
+                                <button
+                                    class="btn btn-secondary"
+                                    data-chart="candlestick"
+                                >
+                                    Geavanceerd
+                                </button>
+                            </div>
+
+                            <div class="chart-container" id="stock-chart"></div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Handelen</h2>
+                            </div>
+
+                            <div class="trade-form">
+                                <div class="form-group">
+                                    <label
+                                        class="form-label"
+                                        for="trade-quantity"
+                                        >Aantal</label
+                                    >
+                                    <input
+                                        type="number"
+                                        id="trade-quantity"
+                                        class="form-input"
+                                        min="1"
+                                        value="1"
+                                    />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Actie</label>
+                                    <div style="display: flex; gap: 8px">
+                                        <button
+                                            class="btn btn-success"
+                                            id="btn-buy"
+                                            style="flex: 1"
+                                        >
+                                            Kopen
+                                        </button>
+                                        <button
+                                            class="btn btn-danger"
+                                            id="btn-sell"
+                                            style="flex: 1"
+                                        >
+                                            Verkopen
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="trade-summary" id="trade-summary">
+                                <div class="trade-summary-row">
+                                    <span>Prijs per aandeel:</span>
+                                    <span id="summary-price">€0,00</span>
+                                </div>
+                                <div class="trade-summary-row">
+                                    <span>Aantal:</span>
+                                    <span id="summary-quantity">0</span>
+                                </div>
+                                <div class="trade-summary-row">
+                                    <span>Subtotaal:</span>
+                                    <span id="summary-subtotal">€0,00</span>
+                                </div>
+                                <div class="trade-summary-row">
+                                    <span>Transactiekosten:</span>
+                                    <span id="summary-fee">€0,00</span>
+                                </div>
+                                <div class="trade-summary-row total">
+                                    <span>Totaal:</span>
+                                    <span id="summary-total">€0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Company Info Card -->
+                    <div
+                        class="card"
+                        id="company-info-card"
+                        style="display: none"
+                    >
+                        <div
+                            class="card-header"
+                            style="
+                                display: flex;
+                                align-items: center;
+                                gap: 16px;
+                            "
+                        >
+                            <img
+                                id="company-logo"
+                                src=""
+                                alt=""
+                                style="
+                                    width: 48px;
+                                    height: 48px;
+                                    object-fit: contain;
+                                    border-radius: 8px;
+                                "
+                            />
+                            <div>
+                                <h2 class="card-title" id="company-name">
+                                    Bedrijfsnaam
+                                </h2>
+                                <span
+                                    style="
+                                        font-family: var(--font-sans);
+                                        font-size: 0.85rem;
+                                        color: #807973;
+                                    "
+                                >
+                                    <span id="company-country">Land</span> ·
+                                    Opgericht in
+                                    <span id="company-founded">jaar</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div
+                            id="company-description"
+                            style="
+                                white-space: pre-line;
+                                line-height: 1.7;
+                                color: #33302e;
+                            "
+                        ></div>
+                    </div>
+
+                    <div class="card" id="stocks-list-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Alle aandelen</h2>
+                        </div>
+                        <ul class="stock-list" id="all-stocks">
+                            <li class="loading">
+                                <span class="spinner"></span> Laden...
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Portfolio View -->
+                <section id="view-portfolio" class="view">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Mijn portefeuille</h2>
+                        </div>
+
+                        <div
+                            id="portfolio-empty"
+                            style="
+                                padding: 32px;
+                                text-align: center;
+                                color: #807973;
+                            "
+                        >
+                            Je hebt nog geen aandelen. Ga naar Aandelen om te
+                            beginnen met handelen!
+                        </div>
+
+                        <div id="portfolio-content" style="display: none">
+                            <div class="portfolio-header">
+                                <span>Aandeel</span>
+                                <span>Aantal</span>
+                                <span>Gem. prijs</span>
+                                <span>Huidige waarde</span>
+                                <span>Winst/Verlies</span>
+                            </div>
+                            <div id="portfolio-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- History View -->
+                <section id="view-history" class="view">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Transactiegeschiedenis</h2>
+                        </div>
+
+                        <div
+                            id="history-empty"
+                            style="
+                                padding: 32px;
+                                text-align: center;
+                                color: #807973;
+                            "
+                        >
+                            Je hebt nog geen transacties gedaan.
+                        </div>
+
+                        <table
+                            class="table"
+                            id="history-table"
+                            style="display: none"
+                        >
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Type</th>
+                                    <th>Aandeel</th>
+                                    <th>Aantal</th>
+                                    <th>Prijs</th>
+                                    <th>Kosten</th>
+                                    <th>Totaal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Settings View -->
+                <section id="view-settings" class="view">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Instellingen</h2>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Speler</h3>
+                            <div class="form-group">
+                                <label class="form-label">Naam</label>
+                                <div
+                                    id="settings-username"
+                                    style="
+                                        padding: 12px;
+                                        background: #f5f0eb;
+                                        border-radius: 4px;
+                                        font-family: var(--font-sans);
+                                        color: #33302e;
+                                    "
+                                ></div>
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Transactiekosten</h3>
+                            <div class="form-group">
+                                <label class="form-label" for="fee-eu"
+                                    >EU aandelen (€)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="fee-eu"
+                                    class="form-input"
+                                    step="0.01"
+                                    min="0"
+                                />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="fee-us"
+                                    >US aandelen (€)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="fee-us"
+                                    class="form-input"
+                                    step="0.01"
+                                    min="0"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Account</h3>
+                            <div class="form-group">
+                                <label class="form-label" for="starting-balance"
+                                    >Startsaldo (€)</label
+                                >
+                                <input
+                                    type="number"
+                                    id="starting-balance"
+                                    class="form-input"
+                                    step="100"
+                                    min="100"
+                                />
+                            </div>
+                            <button class="btn btn-primary" id="save-settings">
+                                Opslaan
+                            </button>
+                        </div>
+
+                        <div class="settings-section">
+                            <h3>Gevarenzone</h3>
+                            <p
+                                style="
+                                    margin-bottom: 16px;
+                                    color: #807973;
+                                    font-family: var(--font-sans);
+                                    font-size: 0.9rem;
+                                "
+                            >
+                                Let op: deze acties kunnen niet ongedaan worden
+                                gemaakt!
+                            </p>
+                            <button
+                                class="btn btn-danger"
+                                id="reset-account"
+                                style="margin-right: 8px"
+                            >
+                                Account resetten
+                            </button>
+                            <button class="btn btn-danger" id="delete-account">
+                                Account verwijderen
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="modal-overlay" id="confirm-modal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modal-title">Bevestigen</h2>
+                </div>
+                <p id="modal-message">Weet je zeker dat je dit wilt doen?</p>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="modal-cancel">
+                        Annuleren
+                    </button>
+                    <button class="btn btn-primary" id="modal-confirm">
+                        Bevestigen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast container -->
+        <div class="toast-container" id="toast-container"></div>
+
+        <!-- Scripts -->
+        <script src="/node_modules/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+        <script src="/js/storage.js"></script>
+        <script src="/js/settings.js"></script>
+        <script src="/js/api.js"></script>
+        <script src="/js/companies.js"></script>
+        <script src="/js/portfolio.js"></script>
+        <script src="/js/charts.js"></script>
+        <script src="/js/app.js"></script>
+    </body>
+</html>
