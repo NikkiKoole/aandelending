@@ -121,6 +121,18 @@
                             </li>
                         </ul>
                     </div>
+
+                    <!-- Market News Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Marktnieuws</h2>
+                        </div>
+                        <div id="market-news-content">
+                            <div class="loading">
+                                <span class="spinner"></span> Laden...
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- Stocks View -->
@@ -327,6 +339,22 @@
                                 color: #33302e;
                             "
                         ></div>
+                    </div>
+
+                    <!-- Analyst Recommendations Card -->
+                    <div
+                        class="card"
+                        id="recommendations-card"
+                        style="display: none"
+                    >
+                        <div class="card-header">
+                            <h2 class="card-title">Analisten aanbevelingen</h2>
+                        </div>
+                        <div id="recommendations-content">
+                            <div class="loading">
+                                <span class="spinner"></span> Laden...
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card" id="stocks-list-card">
@@ -626,7 +654,7 @@
         <div class="toast-container" id="toast-container"></div>
 
         <!-- Scripts -->
-        <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+        <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
         <script src="js/storage.js"></script>
         <script src="js/settings.js"></script>
         <script src="js/api.js"></script>

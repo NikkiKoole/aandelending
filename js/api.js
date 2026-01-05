@@ -126,13 +126,11 @@ const API = {
     }
 
     const response = await fetch(url);
-
     if (!response.ok) {
       throw new Error(`Yahoo API error: ${response.status}`);
     }
 
     const data = await response.json();
-
     if (!data.chart?.result?.[0]) {
       throw new Error("No data returned");
     }
@@ -246,5 +244,125 @@ const API = {
         market: symbol.includes(".") ? "EU" : "US",
       }
     );
+  },
+
+  // Finnhub API key
+  FINNHUB_API_KEY: "d5e0941r01qjckl11vkgd5e0941r01qjckl11vl0",
+
+  // Finnhub rate limit tracking
+  finnhubRateLimited: false,
+  finnhubRateLimitReset: null,
+
+  // Check if Finnhub is rate limited
+  isFinnhubRateLimited() {
+    if (!this.finnhubRateLimited) return false;
+    if (this.finnhubRateLimitReset && Date.now() > this.finnhubRateLimitReset) {
+      this.finnhubRateLimited = false;
+      this.finnhubRateLimitReset = null;
+      return false;
+    }
+    return true;
+  },
+
+  // Get general market news from Finnhub
+  async getMarketNews() {
+    // Check rate limit
+    if (this.isFinnhubRateLimited()) {
+      return { rateLimited: true };
+    }
+
+    const cacheKey = "market_news";
+    const cached = this.getCached(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const url = `https://finnhub.io/api/v1/news?category=general&token=${this.FINNHUB_API_KEY}`;
+
+      const response = await fetch(url);
+
+      // Handle rate limiting (429)
+      if (response.status === 429) {
+        this.finnhubRateLimited = true;
+        this.finnhubRateLimitReset = Date.now() + 60000; // Reset after 1 minute
+        return { rateLimited: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Finnhub news error: ${response.status}`);
+      }
+
+      const news = await response.json();
+
+      // Take only the first 5 news items
+      const limitedNews = news.slice(0, 5).map((item) => ({
+        headline: item.headline,
+        summary: item.summary,
+        source: item.source,
+        url: item.url,
+        datetime: item.datetime,
+        image: item.image,
+      }));
+
+      this.setCache(cacheKey, limitedNews);
+      return limitedNews;
+    } catch (error) {
+      console.error("Error fetching market news:", error);
+      return [];
+    }
+  },
+
+  // Get analyst recommendations from Finnhub
+  async getRecommendations(symbol) {
+    // Check rate limit
+    if (this.isFinnhubRateLimited()) {
+      return { rateLimited: true };
+    }
+
+    const cacheKey = `recommendations_${symbol}`;
+    const cached = this.getCached(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const url = `https://finnhub.io/api/v1/stock/recommendation?symbol=${symbol}&token=${this.FINNHUB_API_KEY}`;
+
+      const response = await fetch(url);
+
+      // Handle rate limiting (429)
+      if (response.status === 429) {
+        this.finnhubRateLimited = true;
+        this.finnhubRateLimitReset = Date.now() + 60000; // Reset after 1 minute
+        return { rateLimited: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Finnhub recommendations error: ${response.status}`);
+      }
+
+      const recommendations = await response.json();
+
+      // Get the most recent recommendation
+      if (recommendations.length > 0) {
+        const latest = recommendations[0];
+        const result = {
+          buy: latest.buy || 0,
+          hold: latest.hold || 0,
+          sell: latest.sell || 0,
+          strongBuy: latest.strongBuy || 0,
+          strongSell: latest.strongSell || 0,
+          period: latest.period,
+        };
+        this.setCache(cacheKey, result);
+        return result;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      return null;
+    }
   },
 };

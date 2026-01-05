@@ -86,6 +86,7 @@ const App = {
         document.getElementById("stock-detail").style.display = "none";
         document.getElementById("stocks-list-card").style.display = "block";
         document.getElementById("company-info-card").style.display = "none";
+        document.getElementById("recommendations-card").style.display = "none";
         this.currentStock = null;
       }
     }
@@ -419,6 +420,9 @@ const App = {
 
     // Load popular stocks
     this.loadPopularStocks();
+
+    // Load market news
+    this.loadMarketNews();
   },
 
   // Load popular stocks
@@ -693,10 +697,143 @@ const App = {
       document.querySelectorAll(".chart-toggle button").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.chart === "simple");
       });
+
+      // Load recommendations (don't await, load in background)
+      this.loadRecommendations(symbol);
     } catch (error) {
       console.error("Failed to load stock details:", error);
       this.showToast("Fout bij laden van aandeel", "error");
     }
+  },
+
+  // Load market news for dashboard
+  async loadMarketNews() {
+    const content = document.getElementById("market-news-content");
+    if (!content) return;
+
+    content.innerHTML =
+      '<div class="loading"><span class="spinner"></span> Laden...</div>';
+
+    try {
+      const news = await API.getMarketNews();
+
+      if (news.rateLimited) {
+        content.innerHTML =
+          '<p class="unavailable-message">Nieuws tijdelijk niet beschikbaar (te veel verzoeken)</p>';
+        return;
+      }
+
+      if (!news || news.length === 0) {
+        content.innerHTML =
+          '<p class="unavailable-message">Geen recent nieuws gevonden</p>';
+        return;
+      }
+
+      content.innerHTML = `
+        <ul class="news-list">
+          ${news
+            .map((item) => {
+              const date = new Date(item.datetime * 1000);
+              const timeAgo = this.getTimeAgo(date);
+              return `
+              <li class="news-item">
+                <a href="${item.url}" target="_blank" rel="noopener">
+                  <div class="news-headline">${item.headline}</div>
+                  <div class="news-meta">${item.source} · ${timeAgo}</div>
+                </a>
+              </li>
+            `;
+            })
+            .join("")}
+        </ul>
+      `;
+    } catch (error) {
+      console.error("Failed to load market news:", error);
+      content.innerHTML =
+        '<p class="unavailable-message">Kon nieuws niet laden</p>';
+    }
+  },
+
+  // Load analyst recommendations
+  async loadRecommendations(symbol) {
+    const card = document.getElementById("recommendations-card");
+    const content = document.getElementById("recommendations-content");
+
+    card.style.display = "block";
+    content.innerHTML =
+      '<div class="loading"><span class="spinner"></span> Laden...</div>';
+
+    try {
+      const rec = await API.getRecommendations(symbol);
+
+      if (rec && rec.rateLimited) {
+        content.innerHTML =
+          '<p class="unavailable-message">Aanbevelingen tijdelijk niet beschikbaar (te veel verzoeken)</p>';
+        return;
+      }
+
+      if (!rec) {
+        content.innerHTML =
+          '<p class="unavailable-message">Geen aanbevelingen beschikbaar</p>';
+        return;
+      }
+
+      const total =
+        rec.strongBuy + rec.buy + rec.hold + rec.sell + rec.strongSell;
+      if (total === 0) {
+        content.innerHTML =
+          '<p class="unavailable-message">Geen aanbevelingen beschikbaar</p>';
+        return;
+      }
+
+      // Calculate percentages
+      const pctStrongBuy = (rec.strongBuy / total) * 100;
+      const pctBuy = (rec.buy / total) * 100;
+      const pctHold = (rec.hold / total) * 100;
+      const pctSell = (rec.sell / total) * 100;
+      const pctStrongSell = (rec.strongSell / total) * 100;
+
+      content.innerHTML = `
+        <div class="recommendations-bar">
+          ${pctStrongBuy > 0 ? `<div class="segment strong-buy" style="width: ${pctStrongBuy}%">${rec.strongBuy}</div>` : ""}
+          ${pctBuy > 0 ? `<div class="segment buy" style="width: ${pctBuy}%">${rec.buy}</div>` : ""}
+          ${pctHold > 0 ? `<div class="segment hold" style="width: ${pctHold}%">${rec.hold}</div>` : ""}
+          ${pctSell > 0 ? `<div class="segment sell" style="width: ${pctSell}%">${rec.sell}</div>` : ""}
+          ${pctStrongSell > 0 ? `<div class="segment strong-sell" style="width: ${pctStrongSell}%">${rec.strongSell}</div>` : ""}
+        </div>
+        <div class="recommendations-legend">
+          <span><div class="legend-dot" style="background: #0a6e0a"></div> Sterk kopen (${rec.strongBuy})</span>
+          <span><div class="legend-dot" style="background: var(--ft-green)"></div> Kopen (${rec.buy})</span>
+          <span><div class="legend-dot" style="background: #f0ad4e"></div> Houden (${rec.hold})</span>
+          <span><div class="legend-dot" style="background: #e07070"></div> Verkopen (${rec.sell})</span>
+          <span><div class="legend-dot" style="background: var(--ft-red)"></div> Sterk verkopen (${rec.strongSell})</span>
+        </div>
+      `;
+    } catch (error) {
+      console.error("Failed to load recommendations:", error);
+      content.innerHTML =
+        '<p class="unavailable-message">Kon aanbevelingen niet laden</p>';
+    }
+  },
+
+  // Get time ago string in Dutch
+  getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+
+    if (seconds < 60) return "zojuist";
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60)
+      return `${minutes} ${minutes === 1 ? "minuut" : "minuten"} geleden`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} ${hours === 1 ? "uur" : "uur"} geleden`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} ${days === 1 ? "dag" : "dagen"} geleden`;
+
+    const weeks = Math.floor(days / 7);
+    return `${weeks} ${weeks === 1 ? "week" : "weken"} geleden`;
   },
 
   // Update trade summary
