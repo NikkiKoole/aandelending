@@ -1,7 +1,11 @@
 const API = {
-  // Cache for API responses (to reduce calls)
   cache: new Map(),
   CACHE_DURATION: 5 * 60000, // 5 minute cache
+
+  // Detect if running locally or on GitHub Pages
+  isLocal() {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  },
 
   // Pre-populated stocks (US-listed symbols)
   popularStocks: [
@@ -40,7 +44,29 @@ const API = {
       return cached;
     }
 
-    const url = `/api/yahoo/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`;
+    // Determine interval based on range
+    const intervalMap = {
+      "1d": "5m",
+      "5d": "15m",
+      "1mo": "1d",
+      "6mo": "1d",
+      "ytd": "1d",
+      "1y": "1d",
+      "5y": "1wk",
+      "max": "1mo",
+    };
+    const interval = intervalMap[range] || "1d";
+
+    let url;
+    if (this.isLocal()) {
+      // Use local Bun server proxy
+      url = `/api/yahoo/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`;
+    } else {
+      // Use CORS proxy for GitHub Pages
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
+      url = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+    }
+
     const response = await fetch(url);
 
     if (!response.ok) {
