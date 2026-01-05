@@ -1,7 +1,7 @@
 const Companies = {
   ASML: {
     name: "ASML Holding",
-    logo: "/images/logos/asml.svg",
+    logo: "images/logos/asml.svg",
     country: "Nederland",
     founded: 1984,
     description: `ASML maakt de machines waarmee computerchips worden gemaakt. Zonder ASML's machines kunnen bedrijven zoals Apple en Samsung geen chips maken voor telefoons en computers.
@@ -10,7 +10,7 @@ ASML is het enige bedrijf ter wereld dat de nieuwste chipmachines kan maken. Dez
   },
   SHEL: {
     name: "Shell",
-    logo: "/images/logos/shell.svg",
+    logo: "images/logos/shell.svg",
     country: "Nederland/UK",
     founded: 1907,
     description: `Shell is een van de grootste energiebedrijven ter wereld. Je kent ze waarschijnlijk van de benzinestations met het gele schelp-logo waar je ouders tanken.
@@ -19,7 +19,7 @@ Shell zoekt naar olie en gas diep onder de grond en in de zee, haalt het naar bo
   },
   ING: {
     name: "ING Groep",
-    logo: "/images/logos/ing.svg",
+    logo: "images/logos/ing.svg",
     country: "Nederland",
     founded: 1991,
     description: `ING is de grootste bank van Nederland. Misschien hebben jouw ouders wel een oranje betaalpas van ING, of gebruiken ze de ING-app om geld over te maken.
@@ -28,7 +28,7 @@ Bij een bank kun je geld sparen, geld lenen (bijvoorbeeld voor een huis), en bet
   },
   PHG: {
     name: "Philips",
-    logo: "/images/logos/philips.svg",
+    logo: "images/logos/philips.svg",
     country: "Nederland",
     founded: 1891,
     description: `Philips is een Nederlands bedrijf dat vroeger lampen, tv's en radio's maakte. Nu maken ze vooral apparaten voor ziekenhuizen en gezondheid, zoals MRI-scanners en apparaten om je hartslag te meten.
@@ -37,7 +37,7 @@ Philips werd meer dan 130 jaar geleden opgericht in Eindhoven en begon met het m
   },
   UL: {
     name: "Unilever",
-    logo: "/images/logos/unilever.svg",
+    logo: "images/logos/unilever.svg",
     country: "Nederland/UK",
     founded: 1929,
     description: `Unilever maakt heel veel producten die je thuis in de kast hebt staan! Denk aan Dove zeep, Axe deodorant, Lipton thee, Magnum ijsjes, Knorr soep en Robijn wasmiddel.
@@ -46,7 +46,7 @@ Het bedrijf verkoopt elke dag producten aan meer dan 3 miljard mensen - bijna de
   },
   NVO: {
     name: "Novo Nordisk",
-    logo: "/images/logos/novo-nordisk.svg",
+    logo: "images/logos/novo-nordisk.svg",
     country: "Denemarken",
     founded: 1923,
     description: `Novo Nordisk is een Deens bedrijf dat medicijnen maakt, vooral voor mensen met diabetes. Diabetes is een ziekte waarbij je lichaam moeite heeft met suiker verwerken.
@@ -55,7 +55,7 @@ Ze maken insuline - een medicijn dat miljoenen mensen elke dag nodig hebben om g
   },
   AAPL: {
     name: "Apple",
-    logo: "/images/logos/apple.svg",
+    logo: "images/logos/apple.svg",
     country: "Verenigde Staten",
     founded: 1976,
     description: `Apple maakt de iPhone, iPad, Mac computers en Apple Watch. Je kent vast wel iemand met een iPhone of AirPods! Apple staat bekend om mooie, makkelijk te gebruiken producten.
@@ -64,7 +64,7 @@ Steve Jobs richtte Apple op in een garage. Nu is het een van de meest waardevoll
   },
   MSFT: {
     name: "Microsoft",
-    logo: "/images/logos/microsoft.svg",
+    logo: "images/logos/microsoft.svg",
     country: "Verenigde Staten",
     founded: 1975,
     description: `Microsoft maakt Windows - het programma dat op de meeste computers draait. Ze maken ook Xbox spelcomputers, Office (Word, Excel, PowerPoint) en de zoekmachine Bing.
@@ -73,7 +73,7 @@ Bill Gates richtte Microsoft op toen hij nog maar 19 was! Nu is Microsoft een va
   },
   TSLA: {
     name: "Tesla",
-    logo: "/images/logos/tesla.svg",
+    logo: "images/logos/tesla.svg",
     country: "Verenigde Staten",
     founded: 2003,
     description: `Tesla maakt elektrische auto's die je niet hoeft te tanken - je laadt ze op zoals je telefoon! De auto's kunnen zelfs een beetje zelf rijden. Bekende modellen zijn de Model 3, Model Y en de snelle Roadster.
@@ -82,7 +82,7 @@ Elon Musk is de baas van Tesla en een van de rijkste mensen ter wereld. Tesla ma
   },
   AMZN: {
     name: "Amazon",
-    logo: "/images/logos/amazon.svg",
+    logo: "images/logos/amazon.svg",
     country: "Verenigde Staten",
     founded: 1994,
     description: `Amazon begon als online boekwinkel, maar nu kun je er bijna alles kopen! In veel landen bezorgen ze pakketjes binnen één dag. Jeff Bezos begon Amazon in zijn garage.
@@ -91,7 +91,7 @@ Maar Amazon is veel meer dan een webwinkel. Ze hebben Amazon Prime Video (films 
   },
   NVDA: {
     name: "Nvidia",
-    logo: "/images/logos/nvidia.svg",
+    logo: "images/logos/nvidia.svg",
     country: "Verenigde Staten",
     founded: 1993,
     description: `Nvidia maakt grafische kaarten - de onderdelen in computers die zorgen voor mooie beelden in games. Gamers over de hele wereld gebruiken Nvidia GeForce kaarten om te gamen.
@@ -100,7 +100,7 @@ Maar nu is Nvidia nog veel belangrijker geworden! Hun chips zijn perfect voor ku
   },
   GOOGL: {
     name: "Alphabet (Google)",
-    logo: "/images/logos/google.svg",
+    logo: "images/logos/google.svg",
     country: "Verenigde Staten",
     founded: 1998,
     description: `Google is de zoekmachine die bijna iedereen gebruikt om dingen op internet te zoeken. "Even googelen" is zelfs een werkwoord geworden! Alphabet is de naam van het moederbedrijf.
@@ -109,7 +109,7 @@ Google heeft ook YouTube (video's kijken), Gmail (e-mail), Google Maps (navigati
   },
   META: {
     name: "Meta",
-    logo: "/images/logos/meta.svg",
+    logo: "images/logos/meta.svg",
     country: "Verenigde Staten",
     founded: 2004,
     description: `Meta is het bedrijf achter Facebook, Instagram en WhatsApp - apps die miljarden mensen gebruiken om met vrienden te praten en foto's te delen. Mark Zuckerberg richtte Facebook op toen hij 19 was.
@@ -118,7 +118,7 @@ De naam Meta komt van "metaverse" - een virtuele wereld waar je met een VR-bril 
   },
   NFLX: {
     name: "Netflix",
-    logo: "/images/logos/netflix.svg",
+    logo: "images/logos/netflix.svg",
     country: "Verenigde Staten",
     founded: 1997,
     description: `Netflix is een streamingdienst waar je films en series kunt kijken wanneer je wilt. Je kent vast wel Netflix Originals zoals Stranger Things, Wednesday of Squid Game!
