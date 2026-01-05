@@ -746,3 +746,8 @@ body {
   margin-top: var(--spacing-sm);
   font-style: italic;
 }
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+}

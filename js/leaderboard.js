@@ -5,6 +5,9 @@ const Leaderboard = {
   JSONBIN_ACCESS_KEY:
     "$2a$10$qSSkvyDSSjqZBDbuYzDmzeRd2c99NQBjs36SA8aHEtCeZnNYuhv5O",
 
+  // Admin mode - set to true to show delete buttons on online scoreboard
+  ADMIN_MODE: false,
+
   // Cache settings
   CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
   SHARE_COOLDOWN: 10 * 60 * 1000, // 10 minutes
@@ -274,6 +277,7 @@ const Leaderboard = {
     }
 
     const currentUser = Storage.getCurrentUser();
+    const showDelete = isOnline && this.ADMIN_MODE;
 
     let html = `
       <table class="leaderboard-table">
@@ -284,6 +288,7 @@ const Leaderboard = {
             <th>Waarde</th>
             <th>Winst/Verlies</th>
             <th>%</th>
+            ${showDelete ? "<th></th>" : ""}
           </tr>
         </thead>
         <tbody>
@@ -301,6 +306,7 @@ const Leaderboard = {
           <td class="value">${this.formatCurrency(score.portfolioValue)}</td>
           <td class="profit-loss ${profitClass}">${this.formatCurrency(score.totalProfit)}</td>
           <td class="percent ${profitClass}">${this.formatPercent(score.profitPercent)}</td>
+          ${showDelete ? `<td><button class="btn btn-danger btn-small" onclick="Leaderboard.adminDelete('${score.username}')">X</button></td>` : ""}
         </tr>
       `;
     });
@@ -322,5 +328,26 @@ const Leaderboard = {
     }
 
     container.innerHTML = html;
+  },
+
+  // Admin delete function
+  async adminDelete(username) {
+    if (!this.ADMIN_MODE) return;
+
+    if (
+      confirm(
+        `Weet je zeker dat je "${username}" wilt verwijderen van de online ranglijst?`,
+      )
+    ) {
+      try {
+        await this.removeFromOnline(username);
+        // Refresh the table
+        const scores = await this.fetchOnlineScores(true);
+        this.renderTable(scores, "online-rankings", true);
+        App.showToast(`${username} verwijderd`, "success");
+      } catch (error) {
+        App.showToast("Fout bij verwijderen", "error");
+      }
+    }
   },
 };
