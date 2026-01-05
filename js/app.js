@@ -84,7 +84,6 @@ const App = {
       // If going back from stock detail to stocks list, hide stock detail
       if (view === "stocks" && !stock) {
         document.getElementById("stock-detail").style.display = "none";
-        document.getElementById("stocks-list-card").style.display = "block";
         document.getElementById("company-info-card").style.display = "none";
         document.getElementById("recommendations-card").style.display = "none";
         this.currentStock = null;
@@ -368,7 +367,7 @@ const App = {
         this.loadDashboard();
         break;
       case "stocks":
-        this.loadStocks();
+        // Stock list removed - search or click from dashboard
         break;
       case "portfolio":
         this.loadPortfolio();
@@ -535,30 +534,6 @@ const App = {
     `;
   },
 
-  // Load stocks view
-  async loadStocks() {
-    const container = document.getElementById("all-stocks");
-    container.innerHTML =
-      '<li class="loading"><span class="spinner"></span> Laden...</li>';
-
-    try {
-      const stocks = await API.getPopularStocksWithPrices();
-      container.innerHTML = stocks
-        .map((stock) => this.renderStockItem(stock))
-        .join("");
-
-      container.querySelectorAll(".stock-item").forEach((item) => {
-        item.addEventListener("click", () => {
-          const symbol = item.dataset.symbol;
-          this.showStockDetail(symbol);
-        });
-      });
-    } catch (error) {
-      container.innerHTML =
-        '<li class="loading">Fout bij laden van aandelen</li>';
-    }
-  },
-
   // Search stocks
   async searchStocks(query) {
     const resultsContainer = document.getElementById("search-results");
@@ -693,7 +668,6 @@ const App = {
     this.currentStock = symbol;
 
     document.getElementById("stock-detail").style.display = "block";
-    document.getElementById("stocks-list-card").style.display = "none";
 
     // Update browser URL
     if (updateHistory) {
