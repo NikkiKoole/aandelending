@@ -19,40 +19,189 @@ const Charts = {
     gridLight: "#F5F5F5",
     text: "#807973",
     textDark: "#333333",
-    sma20: "#FF9500", // Orange for 20-day MA
-    sma50: "#007AFF", // Blue for 50-day MA
+    trendUp: "#0A8A0A", // Green for uptrend support
+    trendDown: "#CC0000", // Red for downtrend resistance
   },
 
-  // Calculate Simple Moving Average
-  calculateSMA(candles, period) {
-    const sma = [];
-    for (let i = 0; i < candles.length; i++) {
-      if (i < period - 1) {
-        sma.push(null); // Not enough data yet
-      } else {
-        let sum = 0;
-        for (let j = 0; j < period; j++) {
-          sum += candles[i - j].close;
+  // Find local minimums (troughs) in price data
+  findTroughs(candles, windowSize = 5) {
+    const troughs = [];
+    for (let i = windowSize; i < candles.length - windowSize; i++) {
+      const low = candles[i].low;
+      let isTrough = true;
+      for (let j = i - windowSize; j <= i + windowSize; j++) {
+        if (j !== i && candles[j].low < low) {
+          isTrough = false;
+          break;
         }
-        sma.push(sum / period);
+      }
+      if (isTrough) {
+        troughs.push({ index: i, price: low, time: candles[i].time });
       }
     }
-    return sma;
+    return troughs;
   },
 
-  // Get appropriate MA periods based on data length and range
-  getMAPeriods(candleCount, range) {
-    // For shorter ranges, use shorter periods
-    if (range === "1d" || range === "5d") {
-      return { short: 5, long: 10 };
-    } else if (range === "1mo") {
-      return { short: 5, long: 10 };
-    } else if (range === "6mo" || range === "ytd") {
-      return { short: 20, long: 50 };
-    } else {
-      // 1y, 5y, max
-      return { short: 20, long: 50 };
+  // Find local maximums (peaks) in price data
+  findPeaks(candles, windowSize = 5) {
+    const peaks = [];
+    for (let i = windowSize; i < candles.length - windowSize; i++) {
+      const high = candles[i].high;
+      let isPeak = true;
+      for (let j = i - windowSize; j <= i + windowSize; j++) {
+        if (j !== i && candles[j].high > high) {
+          isPeak = false;
+          break;
+        }
+      }
+      if (isPeak) {
+        peaks.push({ index: i, price: high, time: candles[i].time });
+      }
     }
+    return peaks;
+  },
+
+  // Calculate trendline using two points
+  calculateTrendline(point1, point2, totalCandles) {
+    const slope = (point2.price - point1.price) / (point2.index - point1.index);
+    const intercept = point1.price - slope * point1.index;
+
+    // Calculate start and end points for the line
+    const startY = intercept;
+    const endY = slope * (totalCandles - 1) + intercept;
+
+    return {
+      startIndex: 0,
+      endIndex: totalCandles - 1,
+      startPrice: startY,
+      endPrice: endY,
+      slope,
+      intercept,
+    };
+  },
+
+  // Find best uptrend line (connecting lows)
+  findUptrendLine(candles) {
+    if (candles.length < 10) return null;
+
+    const windowSize = Math.max(3, Math.floor(candles.length / 20));
+    const troughs = this.findTroughs(candles, windowSize);
+
+    if (troughs.length < 2) return null;
+
+    // Find two significant troughs that form an upward slope
+    // Start from earlier troughs and find a valid uptrend
+    let bestLine = null;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < troughs.length - 1; i++) {
+      for (let j = i + 1; j < troughs.length; j++) {
+        const t1 = troughs[i];
+        const t2 = troughs[j];
+
+        // Must be upward sloping
+        if (t2.price <= t1.price) continue;
+
+        const line = this.calculateTrendline(t1, t2, candles.length);
+
+        // Check if line stays below most candles (valid support)
+        let validSupport = true;
+        let touchCount = 0;
+
+        for (let k = 0; k < candles.length; k++) {
+          const linePrice = line.slope * k + line.intercept;
+          const candleLow = candles[k].low;
+
+          // Line should not be above the lows (with small tolerance)
+          if (linePrice > candleLow * 1.02) {
+            validSupport = false;
+            break;
+          }
+
+          // Count touches (within 2% of the line)
+          if (Math.abs(candleLow - linePrice) / linePrice < 0.02) {
+            touchCount++;
+          }
+        }
+
+        if (validSupport && touchCount >= 2) {
+          const score = touchCount + (t2.index - t1.index) / candles.length;
+          if (score > bestScore) {
+            bestScore = score;
+            bestLine = line;
+          }
+        }
+      }
+    }
+
+    return bestLine;
+  },
+
+  // Find best downtrend line (connecting highs)
+  findDowntrendLine(candles) {
+    if (candles.length < 10) return null;
+
+    const windowSize = Math.max(3, Math.floor(candles.length / 20));
+    const peaks = this.findPeaks(candles, windowSize);
+
+    if (peaks.length < 2) return null;
+
+    let bestLine = null;
+    let bestScore = -Infinity;
+
+    for (let i = 0; i < peaks.length - 1; i++) {
+      for (let j = i + 1; j < peaks.length; j++) {
+        const p1 = peaks[i];
+        const p2 = peaks[j];
+
+        // Must be downward sloping
+        if (p2.price >= p1.price) continue;
+
+        const line = this.calculateTrendline(p1, p2, candles.length);
+
+        // Check if line stays above most candles (valid resistance)
+        let validResistance = true;
+        let touchCount = 0;
+
+        for (let k = 0; k < candles.length; k++) {
+          const linePrice = line.slope * k + line.intercept;
+          const candleHigh = candles[k].high;
+
+          // Line should not be below the highs (with small tolerance)
+          if (linePrice < candleHigh * 0.98) {
+            validResistance = false;
+            break;
+          }
+
+          // Count touches
+          if (Math.abs(candleHigh - linePrice) / linePrice < 0.02) {
+            touchCount++;
+          }
+        }
+
+        if (validResistance && touchCount >= 2) {
+          const score = touchCount + (p2.index - p1.index) / candles.length;
+          if (score > bestScore) {
+            bestScore = score;
+            bestLine = line;
+          }
+        }
+      }
+    }
+
+    return bestLine;
+  },
+
+  // Detect overall trend direction
+  detectTrend(candles) {
+    if (candles.length < 2) return "neutral";
+    const firstPrice = candles[0].close;
+    const lastPrice = candles[candles.length - 1].close;
+    const change = (lastPrice - firstPrice) / firstPrice;
+
+    if (change > 0.02) return "up";
+    if (change < -0.02) return "down";
+    return "neutral";
   },
 
   // Time ranges
@@ -342,50 +491,37 @@ const Charts = {
     });
     ctx.stroke();
 
-    // Draw Moving Averages (trendlines)
+    // Draw Trendline
     if (this.showTrendlines && candles.length >= 10) {
-      const maPeriods = this.getMAPeriods(candles.length, range);
-      const smaShort = this.calculateSMA(candles, maPeriods.short);
-      const smaLong = this.calculateSMA(candles, maPeriods.long);
+      const trend = this.detectTrend(candles);
+      let trendline = null;
+      let trendColor = null;
 
-      // Draw short MA (orange)
-      ctx.strokeStyle = this.colors.sma20;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      let started = false;
-      smaShort.forEach((value, i) => {
-        if (value !== null) {
-          const x = padding.left + i * xScale;
-          const y = padding.top + (adjustedMax - value) * yScale;
-          if (!started) {
-            ctx.moveTo(x, y);
-            started = true;
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-      });
-      ctx.stroke();
+      if (trend === "up") {
+        trendline = this.findUptrendLine(candles);
+        trendColor = this.colors.trendUp;
+      } else if (trend === "down") {
+        trendline = this.findDowntrendLine(candles);
+        trendColor = this.colors.trendDown;
+      }
 
-      // Draw long MA (blue)
-      ctx.strokeStyle = this.colors.sma50;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      started = false;
-      smaLong.forEach((value, i) => {
-        if (value !== null) {
-          const x = padding.left + i * xScale;
-          const y = padding.top + (adjustedMax - value) * yScale;
-          if (!started) {
-            ctx.moveTo(x, y);
-            started = true;
-          } else {
-            ctx.lineTo(x, y);
-          }
-        }
-      });
-      ctx.stroke();
+      if (trendline) {
+        ctx.strokeStyle = trendColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+
+        const startX = padding.left + trendline.startIndex * xScale;
+        const startY =
+          padding.top + (adjustedMax - trendline.startPrice) * yScale;
+        const endX = padding.left + trendline.endIndex * xScale;
+        const endY = padding.top + (adjustedMax - trendline.endPrice) * yScale;
+
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
 
     // Draw date labels
@@ -410,24 +546,29 @@ const Charts = {
       ctx.fillText(lastLabel, lastX, rect.height - 8);
     }
 
-    // Draw legend for MAs
+    // Draw legend for trendline
     if (this.showTrendlines && candles.length >= 10) {
-      const maPeriods = this.getMAPeriods(candles.length, range);
-      const legendY = padding.top + 12;
+      const trend = this.detectTrend(candles);
+      if (trend !== "neutral") {
+        const legendY = padding.top + 12;
+        const trendColor =
+          trend === "up" ? this.colors.trendUp : this.colors.trendDown;
+        const trendLabel = trend === "up" ? "Steun" : "Weerstand";
 
-      // Short MA legend
-      ctx.fillStyle = this.colors.sma20;
-      ctx.fillRect(padding.left, legendY - 6, 16, 3);
-      ctx.fillStyle = this.colors.text;
-      ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText(`MA${maPeriods.short}`, padding.left + 20, legendY);
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = trendColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, legendY - 3);
+        ctx.lineTo(padding.left + 20, legendY - 3);
+        ctx.stroke();
+        ctx.setLineDash([]);
 
-      // Long MA legend
-      ctx.fillStyle = this.colors.sma50;
-      ctx.fillRect(padding.left + 55, legendY - 6, 16, 3);
-      ctx.fillStyle = this.colors.text;
-      ctx.fillText(`MA${maPeriods.long}`, padding.left + 75, legendY);
+        ctx.fillStyle = this.colors.text;
+        ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(trendLabel, padding.left + 25, legendY);
+      }
     }
 
     // Mouse interaction
@@ -618,37 +759,38 @@ const Charts = {
 
     candlestickSeries.setData(candles);
 
-    // Add Moving Averages as line series
+    // Add Trendline as line series
     if (this.showTrendlines && candles.length >= 10) {
-      const maPeriods = this.getMAPeriods(candles.length, this.currentRange);
-      const smaShort = this.calculateSMA(candles, maPeriods.short);
-      const smaLong = this.calculateSMA(candles, maPeriods.long);
+      const trend = this.detectTrend(candles);
+      let trendline = null;
+      let trendColor = null;
+      let trendLabel = "";
 
-      // Short MA (orange)
-      const smaShortSeries = chart.addLineSeries({
-        color: this.colors.sma20,
-        lineWidth: 2,
-        title: `MA${maPeriods.short}`,
-      });
-      const smaShortData = candles
-        .map((c, i) =>
-          smaShort[i] !== null ? { time: c.time, value: smaShort[i] } : null,
-        )
-        .filter((d) => d !== null);
-      smaShortSeries.setData(smaShortData);
+      if (trend === "up") {
+        trendline = this.findUptrendLine(candles);
+        trendColor = this.colors.trendUp;
+        trendLabel = "Steun";
+      } else if (trend === "down") {
+        trendline = this.findDowntrendLine(candles);
+        trendColor = this.colors.trendDown;
+        trendLabel = "Weerstand";
+      }
 
-      // Long MA (blue)
-      const smaLongSeries = chart.addLineSeries({
-        color: this.colors.sma50,
-        lineWidth: 2,
-        title: `MA${maPeriods.long}`,
-      });
-      const smaLongData = candles
-        .map((c, i) =>
-          smaLong[i] !== null ? { time: c.time, value: smaLong[i] } : null,
-        )
-        .filter((d) => d !== null);
-      smaLongSeries.setData(smaLongData);
+      if (trendline) {
+        const trendSeries = chart.addLineSeries({
+          color: trendColor,
+          lineWidth: 2,
+          lineStyle: 1, // Dashed
+          title: trendLabel,
+        });
+
+        // Create line data from start to end
+        const trendData = [
+          { time: candles[0].time, value: trendline.startPrice },
+          { time: candles[candles.length - 1].time, value: trendline.endPrice },
+        ];
+        trendSeries.setData(trendData);
+      }
     }
 
     chart.timeScale().fitContent();

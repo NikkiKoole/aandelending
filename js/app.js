@@ -84,6 +84,7 @@ const App = {
       if (view === "stocks" && !stock) {
         document.getElementById("stock-detail").style.display = "none";
         document.getElementById("stocks-list-card").style.display = "block";
+        document.getElementById("company-info-card").style.display = "none";
         this.currentStock = null;
       }
     }
@@ -594,6 +595,16 @@ const App = {
 
     // Load company info if available
     const companyInfo = getCompanyInfo(symbol);
+
+    // Set logo in header
+    const detailLogo = document.getElementById("detail-logo");
+    if (companyInfo && companyInfo.logo) {
+      detailLogo.src = companyInfo.logo;
+      detailLogo.alt = companyInfo.name;
+      detailLogo.style.display = "block";
+    } else {
+      detailLogo.style.display = "none";
+    }
     const companyCard = document.getElementById("company-info-card");
     if (companyInfo) {
       companyCard.style.display = "block";
