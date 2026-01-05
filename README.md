@@ -6,14 +6,17 @@ Een educatief aandelenhandelspel voor kinderen om te leren over de beurs met nep
 
 - **Handelen met nepgeld** - Start met €10.000 virtueel geld
 - **Echte aandelenprijzen** - 15 minuten vertraagde data via Yahoo Finance
-- **Nederlandse en Amerikaanse aandelen** - ASML, Shell, Apple, Tesla, etc.
+- **35 populaire aandelen** - Nederlandse, Europese en Amerikaanse bedrijven
 - **Grafieken** - Eenvoudige lijngrafiek of geavanceerde candlestick chart
 - **Portefeuille tracking** - Bekijk je bezittingen en winst/verlies
-- **Transactiekosten** - Simuleert Degiro-achtige kosten
+- **Transactiekosten** - Simuleert Degiro-achtige kosten (€3 EU, €2 US)
 - **Marktnieuws** - Actueel financieel nieuws op het dashboard
 - **Analisten aanbevelingen** - Koop/houd/verkoop adviezen per aandeel
+- **Bedrijfsinformatie** - Beschrijvingen, marktwaarde en "Wist je dat?" weetjes
+- **Sorteren** - Op naam, dagwijziging, sector of marktwaarde
 - **Ranglijst** - Lokaal en online competitie met vrienden
 - **Nederlandse interface** - Volledig in het Nederlands
+- **Skeleton loaders** - Mooie laadanimaties voor een vloeiende ervaring
 
 ## Live Demo
 
