@@ -146,9 +146,9 @@ const API = {
       market: "US",
     },
     {
-      symbol: "PARA",
-      name: "Paramount",
-      description: "Paramount+, MTV",
+      symbol: "PSKY",
+      name: "Paramount Skydance",
+      description: "Paramount+, MTV, Nickelodeon",
       market: "US",
     },
     {

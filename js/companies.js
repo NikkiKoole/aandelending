@@ -279,15 +279,15 @@ De naam komt van "Air Bed and Breakfast" - de oprichters verhuurden luchtbedden 
 
 Warner Bros bestaat al sinds 1923 en heeft iconische films gemaakt zoals Batman, Superman en The Matrix. Ze hebben ook Looney Tunes met Bugs Bunny! In 2022 fuseerden ze met Discovery (bekend van dierenprogramma's).`,
   },
-  PARA: {
-    name: "Paramount",
+  PSKY: {
+    name: "Paramount Skydance",
     logo: "images/logos/paramount.svg",
     country: "Verenigde Staten",
     founded: 1912,
     sector: "Entertainment",
-    description: `Paramount is een van de oudste filmstudio's ter wereld, bekend van het logo met de berg en de sterren. Ze maken films en hebben streamingdienst Paramount+.
+    description: `Paramount Skydance is een groot mediabedrijf, bekend van het logo met de berg en de sterren. Ze maken films en hebben streamingdienst Paramount+.
 
-Paramount heeft beroemde films gemaakt zoals Top Gun, Transformers, Mission: Impossible en SpongeBob SquarePants! Ze bezitten ook MTV, Nickelodeon en Comedy Central. Het bedrijf is meer dan 110 jaar oud!`,
+Paramount heeft beroemde films gemaakt zoals Top Gun, Transformers, Mission: Impossible en SpongeBob SquarePants! Ze bezitten ook MTV, Nickelodeon en Comedy Central. In 2025 fuseerden ze met Skydance Media.`,
   },
   ADDYY: {
     name: "Adidas",
