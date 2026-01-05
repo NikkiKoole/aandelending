@@ -269,6 +269,96 @@ Uber heeft de taxi-industrie compleet veranderd! Nu kan iedereen met een auto Ub
 
 De naam komt van "Air Bed and Breakfast" - de oprichters verhuurden luchtbedden in hun woonkamer! Nu staan er meer dan 7 miljoen accommodaties op Airbnb, van boomhutten tot kastelen. Je kunt ook "Ervaringen" boeken, zoals kooklessen of rondleidingen van locals.`,
   },
+  WBD: {
+    name: "Warner Bros Discovery",
+    logo: "images/logos/warnerbros.svg",
+    country: "Verenigde Staten",
+    founded: 2022,
+    sector: "Entertainment",
+    description: `Warner Bros Discovery is een groot mediabedrijf dat films, series en nieuws maakt. Ze hebben HBO Max (met Game of Thrones en Harry Potter), CNN nieuws, en maken beroemde films.
+
+Warner Bros bestaat al sinds 1923 en heeft iconische films gemaakt zoals Batman, Superman en The Matrix. Ze hebben ook Looney Tunes met Bugs Bunny! In 2022 fuseerden ze met Discovery (bekend van dierenprogramma's).`,
+  },
+  PARA: {
+    name: "Paramount",
+    logo: "images/logos/paramount.svg",
+    country: "Verenigde Staten",
+    founded: 1912,
+    sector: "Entertainment",
+    description: `Paramount is een van de oudste filmstudio's ter wereld, bekend van het logo met de berg en de sterren. Ze maken films en hebben streamingdienst Paramount+.
+
+Paramount heeft beroemde films gemaakt zoals Top Gun, Transformers, Mission: Impossible en SpongeBob SquarePants! Ze bezitten ook MTV, Nickelodeon en Comedy Central. Het bedrijf is meer dan 110 jaar oud!`,
+  },
+  ADDYY: {
+    name: "Adidas",
+    logo: "images/logos/adidas.svg",
+    country: "Duitsland",
+    founded: 1949,
+    sector: "Kleding & Sport",
+    description: `Adidas is een van de grootste sportmerken ter wereld, bekend van de drie strepen. Ze maken sportschoenen, kleding en sportspullen, en zijn de grote concurrent van Nike.
+
+Adidas werd opgericht in Duitsland door Adi Dassler (Adi-Das). Zijn broer Rudolf begon Puma! Adidas sponsort veel voetbalclubs en heeft samenwerkingen met artiesten. Superstar en Stan Smith sneakers zijn klassiekers.`,
+  },
+  MBGYY: {
+    name: "Mercedes-Benz",
+    logo: "images/logos/mercedes.svg",
+    country: "Duitsland",
+    founded: 1926,
+    sector: "Auto's",
+    description: `Mercedes-Benz maakt luxe auto's en is een van de bekendste automerken ter wereld. De ster met drie punten is overal herkenbaar. Ze komen uit Duitsland.
+
+Mercedes-Benz is vernoemd naar Mercedes Jellinek, de dochter van een zakenman. Het merk staat voor luxe en kwaliteit. Ze maken nu ook elektrische auto's (EQ-serie) en hebben een succesvol Formule 1 team met Lewis Hamilton!`,
+  },
+  BMWYY: {
+    name: "BMW",
+    logo: "images/logos/bmw.svg",
+    country: "Duitsland",
+    founded: 1916,
+    sector: "Auto's",
+    description: `BMW maakt luxe auto's en motoren. De naam staat voor Bayerische Motoren Werke (Beierse Motorfabrieken). Het blauwe-witte logo verwijst naar de Beierse vlag.
+
+BMW begon met het maken van vliegtuigmotoren! Nu maken ze sportieve auto's die bekend staan om hun rijplezier. Ze bezitten ook MINI en Rolls-Royce. BMW maakt elektrische auto's onder de naam BMW i.`,
+  },
+  RACE: {
+    name: "Ferrari",
+    logo: "images/logos/ferrari.svg",
+    country: "Italië",
+    founded: 1939,
+    sector: "Auto's",
+    description: `Ferrari maakt de beroemdste sportwagens ter wereld. De rode kleur en het steigerend paard zijn iconisch. Ferrari's zijn heel duur en exclusief - ze maken er maar een paar duizend per jaar.
+
+Enzo Ferrari richtte het bedrijf op en begon met racen. Ferrari is het succesvolste team in de Formule 1 ooit! Een nieuwe Ferrari kost vaak meer dan €200.000, en sommige oude modellen zijn miljoenen waard.`,
+  },
+  PYPL: {
+    name: "PayPal",
+    logo: "images/logos/paypal.svg",
+    country: "Verenigde Staten",
+    founded: 1998,
+    sector: "Financieel",
+    description: `PayPal is een online betaaldienst waarmee je veilig kunt betalen op internet zonder je bankgegevens te delen. Je kunt ook geld sturen naar vrienden.
+
+PayPal was een van de eerste bedrijven voor online betalen. Elon Musk was een van de oprichters! Later kocht eBay het, maar nu is het weer zelfstandig. Meer dan 400 miljoen mensen gebruiken PayPal wereldwijd.`,
+  },
+  XOM: {
+    name: "Exxon Mobil",
+    logo: "images/logos/exxon.svg",
+    country: "Verenigde Staten",
+    founded: 1999,
+    sector: "Energie",
+    description: `Exxon Mobil is het grootste olie- en gasbedrijf van Amerika. Ze zoeken naar olie, halen het naar boven, en maken er benzine en andere producten van.
+
+Het bedrijf ontstond uit Standard Oil, het beroemde oliebedrijf van John D. Rockefeller. Exxon en Mobil waren apart, maar fuseerden in 1999. Je kent misschien Esso tankstations - dat is van Exxon (S-O van Standard Oil)!`,
+  },
+  BP: {
+    name: "BP",
+    logo: "images/logos/bp.svg",
+    country: "Verenigd Koninkrijk",
+    founded: 1909,
+    sector: "Energie",
+    description: `BP (vroeger British Petroleum) is een van de grootste olie- en gasbedrijven ter wereld. Het groene logo met de zonnebloemachtige vorm ken je misschien van tankstations.
+
+BP komt uit het Verenigd Koninkrijk en werkt in meer dan 70 landen. Ze investeren steeds meer in schone energie zoals wind en zon. BP wil in 2050 klimaatneutraal zijn.`,
+  },
 };
 
 // Sector order for sorting

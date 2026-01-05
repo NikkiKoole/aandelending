@@ -139,6 +139,60 @@ const API = {
       description: "Vakantiehuizen",
       market: "US",
     },
+    {
+      symbol: "WBD",
+      name: "Warner Bros Discovery",
+      description: "HBO Max, CNN",
+      market: "US",
+    },
+    {
+      symbol: "PARA",
+      name: "Paramount",
+      description: "Paramount+, MTV",
+      market: "US",
+    },
+    {
+      symbol: "ADDYY",
+      name: "Adidas",
+      description: "Sportkleding (Duits)",
+      market: "US",
+    },
+    {
+      symbol: "MBGYY",
+      name: "Mercedes-Benz",
+      description: "Luxe auto's (Duits)",
+      market: "US",
+    },
+    {
+      symbol: "BMWYY",
+      name: "BMW",
+      description: "Luxe auto's (Duits)",
+      market: "US",
+    },
+    {
+      symbol: "RACE",
+      name: "Ferrari",
+      description: "Sportwagens (Italiaans)",
+      market: "US",
+    },
+    {
+      symbol: "PYPL",
+      name: "PayPal",
+      description: "Online betalen",
+      market: "US",
+    },
+    {
+      symbol: "XOM",
+      name: "Exxon Mobil",
+      description: "Olie & Gas (Amerikaans)",
+      market: "US",
+    },
+    {
+      symbol: "BP",
+      name: "BP",
+      description: "Olie & Gas (Brits)",
+      market: "US",
+    },
   ],
 
   getCached(key) {
