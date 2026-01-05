@@ -741,6 +741,16 @@ const App = {
         companyInfo.founded;
       document.getElementById("company-description").textContent =
         companyInfo.description;
+
+      // Show fun fact if available
+      const funFactEl = document.getElementById("company-funfact");
+      if (companyInfo.funFact) {
+        document.getElementById("company-funfact-text").textContent =
+          " " + companyInfo.funFact;
+        funFactEl.style.display = "block";
+      } else {
+        funFactEl.style.display = "none";
+      }
     } else {
       companyCard.style.display = "none";
     }
