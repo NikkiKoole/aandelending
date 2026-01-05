@@ -4,24 +4,82 @@ const API = {
 
   // Detect if running locally or on GitHub Pages
   isLocal() {
-    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return (
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    );
   },
 
   // Pre-populated stocks (US-listed symbols)
   popularStocks: [
-    { symbol: "ASML", name: "ASML Holding", description: "Chipmachines (NL)", market: "EU" },
-    { symbol: "SHEL", name: "Shell", description: "Olie & Gas (NL/UK)", market: "EU" },
-    { symbol: "ING", name: "ING Groep", description: "Bank (NL)", market: "EU" },
-    { symbol: "PHG", name: "Philips", description: "Gezondheidstechnologie (NL)", market: "EU" },
-    { symbol: "UL", name: "Unilever", description: "Consumentenproducten (NL/UK)", market: "EU" },
-    { symbol: "NVO", name: "Novo Nordisk", description: "Farmaceutisch (DK)", market: "EU" },
+    {
+      symbol: "ASML",
+      name: "ASML Holding",
+      description: "Chipmachines (NL)",
+      market: "EU",
+    },
+    {
+      symbol: "SHEL",
+      name: "Shell",
+      description: "Olie & Gas (NL/UK)",
+      market: "EU",
+    },
+    {
+      symbol: "ING",
+      name: "ING Groep",
+      description: "Bank (NL)",
+      market: "EU",
+    },
+    {
+      symbol: "PHG",
+      name: "Philips",
+      description: "Gezondheidstechnologie (NL)",
+      market: "EU",
+    },
+    {
+      symbol: "UL",
+      name: "Unilever",
+      description: "Consumentenproducten (NL/UK)",
+      market: "EU",
+    },
+    {
+      symbol: "NVO",
+      name: "Novo Nordisk",
+      description: "Farmaceutisch (DK)",
+      market: "EU",
+    },
     { symbol: "AAPL", name: "Apple", description: "iPhone, Mac", market: "US" },
-    { symbol: "MSFT", name: "Microsoft", description: "Windows, Xbox", market: "US" },
-    { symbol: "TSLA", name: "Tesla", description: "Elektrische auto's", market: "US" },
+    {
+      symbol: "MSFT",
+      name: "Microsoft",
+      description: "Windows, Xbox",
+      market: "US",
+    },
+    {
+      symbol: "TSLA",
+      name: "Tesla",
+      description: "Elektrische auto's",
+      market: "US",
+    },
     { symbol: "AMZN", name: "Amazon", description: "Webwinkel", market: "US" },
-    { symbol: "NVDA", name: "Nvidia", description: "Grafische kaarten, AI", market: "US" },
-    { symbol: "GOOGL", name: "Alphabet (Google)", description: "Zoekmachine", market: "US" },
-    { symbol: "META", name: "Meta", description: "Facebook, Instagram", market: "US" },
+    {
+      symbol: "NVDA",
+      name: "Nvidia",
+      description: "Grafische kaarten, AI",
+      market: "US",
+    },
+    {
+      symbol: "GOOGL",
+      name: "Alphabet (Google)",
+      description: "Zoekmachine",
+      market: "US",
+    },
+    {
+      symbol: "META",
+      name: "Meta",
+      description: "Facebook, Instagram",
+      market: "US",
+    },
     { symbol: "NFLX", name: "Netflix", description: "Streaming", market: "US" },
   ],
 
@@ -50,10 +108,10 @@ const API = {
       "5d": "15m",
       "1mo": "1d",
       "6mo": "1d",
-      "ytd": "1d",
+      ytd: "1d",
       "1y": "1d",
       "5y": "1wk",
-      "max": "1mo",
+      max: "1mo",
     };
     const interval = intervalMap[range] || "1d";
 
@@ -62,9 +120,9 @@ const API = {
       // Use local Bun server proxy
       url = `/api/yahoo/chart?symbol=${encodeURIComponent(symbol)}&range=${range}`;
     } else {
-      // Use CORS proxy for GitHub Pages
+      // Use corsproxy.io for GitHub Pages
       const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
-      url = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+      url = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
     }
 
     const response = await fetch(url);
@@ -102,9 +160,13 @@ const API = {
       symbol,
       currentPrice: meta.regularMarketPrice || 0,
       previousClose: meta.previousClose || meta.chartPreviousClose || 0,
-      change: (meta.regularMarketPrice || 0) - (meta.previousClose || meta.chartPreviousClose || 0),
+      change:
+        (meta.regularMarketPrice || 0) -
+        (meta.previousClose || meta.chartPreviousClose || 0),
       percentChange: meta.previousClose
-        ? ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100
+        ? ((meta.regularMarketPrice - meta.previousClose) /
+            meta.previousClose) *
+          100
         : 0,
       high: meta.regularMarketDayHigh || 0,
       low: meta.regularMarketDayLow || 0,
@@ -142,10 +204,14 @@ const API = {
         (s) =>
           s.symbol.toLowerCase().includes(q) ||
           s.name.toLowerCase().includes(q) ||
-          s.description.toLowerCase().includes(q)
+          s.description.toLowerCase().includes(q),
       )
       .slice(0, 10)
-      .map((s) => ({ symbol: s.symbol, name: s.name, description: s.description }));
+      .map((s) => ({
+        symbol: s.symbol,
+        name: s.name,
+        description: s.description,
+      }));
   },
 
   async getMultipleQuotes(symbols) {
