@@ -163,12 +163,7 @@ const API = {
       description: "Luxe auto's (Duits)",
       market: "US",
     },
-    {
-      symbol: "BMWYY",
-      name: "BMW",
-      description: "Luxe auto's (Duits)",
-      market: "US",
-    },
+
     {
       symbol: "RACE",
       name: "Ferrari",

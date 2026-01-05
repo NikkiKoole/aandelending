@@ -309,16 +309,7 @@ Adidas werd opgericht in Duitsland door Adi Dassler (Adi-Das). Zijn broer Rudolf
 
 Mercedes-Benz is vernoemd naar Mercedes Jellinek, de dochter van een zakenman. Het merk staat voor luxe en kwaliteit. Ze maken nu ook elektrische auto's (EQ-serie) en hebben een succesvol Formule 1 team met Lewis Hamilton!`,
   },
-  BMWYY: {
-    name: "BMW",
-    logo: "images/logos/bmw.svg",
-    country: "Duitsland",
-    founded: 1916,
-    sector: "Auto's",
-    description: `BMW maakt luxe auto's en motoren. De naam staat voor Bayerische Motoren Werke (Beierse Motorfabrieken). Het blauwe-witte logo verwijst naar de Beierse vlag.
 
-BMW begon met het maken van vliegtuigmotoren! Nu maken ze sportieve auto's die bekend staan om hun rijplezier. Ze bezitten ook MINI en Rolls-Royce. BMW maakt elektrische auto's onder de naam BMW i.`,
-  },
   RACE: {
     name: "Ferrari",
     logo: "images/logos/ferrari.svg",
