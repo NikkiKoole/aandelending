@@ -312,81 +312,12 @@ const Charts = {
     return intervalMap[range] || "1d";
   },
 
-  // Interval hierarchy from smallest to largest (fine to coarse)
-  intervalOrder: ["5m", "15m", "1h", "1d", "1wk", "1mo"],
-
-  // Get interval index in hierarchy (larger index = coarser interval)
-  getIntervalIndex(interval) {
-    return this.intervalOrder.indexOf(interval);
-  },
-
-  // Determine best interval based on visible time span in seconds
-  // Returns the optimal interval for the given timespan
-  getBestIntervalForTimespan(visibleSeconds) {
-    const visibleDays = visibleSeconds / (24 * 60 * 60);
-    if (visibleDays <= 2) return "5m"; // Up to 2 days: 5-minute candles
-    if (visibleDays <= 10) return "15m"; // Up to 10 days: 15-minute candles
-    if (visibleDays <= 60) return "1h"; // Up to 2 months: hourly candles
-    if (visibleDays <= 400) return "1d"; // Up to ~1 year: daily candles
-    if (visibleDays <= 2000) return "1wk"; // Up to ~5 years: weekly candles
-    return "1mo"; // More than 5 years: monthly candles
-  },
-
-  // Determine if an interval switch should happen based on zoom direction
-  // Only allows switching in the correct direction:
-  // - Zooming OUT (more time visible): only switch to coarser intervals
-  // - Zooming IN (less time visible): only switch to finer intervals
-  shouldSwitchInterval(currentInterval, bestInterval, visibleSeconds) {
-    const currentIdx = this.getIntervalIndex(currentInterval);
-    const bestIdx = this.getIntervalIndex(bestInterval);
-
-    if (currentIdx === -1 || bestIdx === -1) return false;
-    if (currentIdx === bestIdx) return false;
-
-    const visibleDays = visibleSeconds / (24 * 60 * 60);
-
-    // Define thresholds with hysteresis to prevent flip-flopping
-    // Upper threshold: when to switch to coarser interval (zooming out)
-    // Lower threshold: when to switch to finer interval (zooming in)
-    // These thresholds are intentionally far apart to avoid frequent switching
-    const thresholds = {
-      "5m": { upper: 4 }, // Switch to 15m when > 4 days
-      "15m": { lower: 1, upper: 20 }, // Switch to 5m when < 1 day, to 1h when > 20 days
-      "1h": { lower: 5, upper: 120 }, // Switch to 15m when < 5 days, to 1d when > 120 days
-      "1d": { lower: 14, upper: 800 }, // Switch to 1h when < 14 days, to 1wk when > 800 days
-      "1wk": { lower: 200, upper: 4000 }, // Switch to 1d when < 200 days, to 1mo when > 4000 days
-      "1mo": { lower: 1000 }, // Switch to 1wk when < 1000 days
-    };
-
-    const currentThresholds = thresholds[currentInterval];
-    if (!currentThresholds) return false;
-
-    // Check if we should zoom OUT (switch to coarser interval)
-    if (
-      bestIdx > currentIdx &&
-      currentThresholds.upper &&
-      visibleDays > currentThresholds.upper
-    ) {
-      return true;
-    }
-
-    // Check if we should zoom IN (switch to finer interval)
-    if (
-      bestIdx < currentIdx &&
-      currentThresholds.lower &&
-      visibleDays < currentThresholds.lower
-    ) {
-      return true;
-    }
-
-    return false;
-  },
-
   // Get seconds per candle for a given interval
   getSecondsPerCandle(interval) {
     const secondsMap = {
       "5m": 5 * 60,
       "15m": 15 * 60,
+      "30m": 30 * 60,
       "1h": 60 * 60,
       "1d": 24 * 60 * 60,
       "1wk": 7 * 24 * 60 * 60,
@@ -397,7 +328,12 @@ const Charts = {
 
   // Check if an interval requires intraday data (limited to last 60 days)
   isIntradayInterval(interval) {
-    return interval === "5m" || interval === "15m" || interval === "1h";
+    return (
+      interval === "5m" ||
+      interval === "15m" ||
+      interval === "30m" ||
+      interval === "1h"
+    );
   },
 
   // Convert a "trading days" period to the appropriate candle count for the current interval
@@ -989,6 +925,51 @@ const Charts = {
     // Store reference to range selector for updating active state
     this.rangeSelectorElement = rangeSelector;
 
+    // Create interval selector row
+    const intervalSelector = document.createElement("div");
+    intervalSelector.style.cssText =
+      "display: flex; gap: 4px; padding: 4px 0 8px 0;";
+
+    const intervals = [
+      { key: "5m", label: "5m" },
+      { key: "15m", label: "15m" },
+      { key: "30m", label: "30m" },
+      { key: "1h", label: "1u" },
+      { key: "1d", label: "1d" },
+      { key: "1wk", label: "1w" },
+      { key: "1mo", label: "1m" },
+    ];
+
+    intervals.forEach((int) => {
+      const btn = document.createElement("button");
+      btn.textContent = int.label;
+      btn.dataset.interval = int.key;
+      const isActive = int.key === this.currentInterval;
+      btn.style.cssText = `
+        padding: 4px 8px;
+        border: 1px solid ${isActive ? "#0D7680" : "#E8E8E8"};
+        background: ${isActive ? "#E8F4F5" : "transparent"};
+        color: ${isActive ? "#0D7680" : "#807973"};
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 11px;
+        font-weight: ${isActive ? "600" : "400"};
+        cursor: pointer;
+        border-radius: 4px;
+      `;
+      btn.addEventListener("click", () => {
+        this.changeInterval(int.key);
+      });
+      intervalSelector.appendChild(btn);
+    });
+
+    wrapper.appendChild(intervalSelector);
+
+    // Store reference to interval selector for updating active state
+    this.intervalSelectorElement = intervalSelector;
+
+    // Update interval selector with correct disabled states based on loaded data range
+    this.updateIntervalSelector(this.currentInterval);
+
     // Create chart container
     const chartContainer = document.createElement("div");
     chartContainer.style.cssText = "flex: 1; min-height: 0;";
@@ -1272,20 +1253,6 @@ const Charts = {
         return;
       }
 
-      // Calculate the INTENDED visible time span based on logical range
-      // This accounts for zooming beyond loaded data
-      const candleCount = logicalRange.to - logicalRange.from;
-      const secondsPerCandle = this.getSecondsPerCandle(this.currentInterval);
-      const intendedVisibleSeconds = candleCount * secondsPerCandle;
-
-      console.log(
-        `[DEBUG] candleCount=${candleCount.toFixed(1)}, secondsPerCandle=${secondsPerCandle}, visibleDays=${(intendedVisibleSeconds / 86400).toFixed(1)}, currentInterval=${this.currentInterval}`,
-      );
-
-      const bestInterval = this.getBestIntervalForTimespan(
-        intendedVisibleSeconds,
-      );
-
       // Update the % change display for visible range (in custom mode)
       if (
         hasUserInteracted &&
@@ -1304,26 +1271,13 @@ const Charts = {
         }
       }
 
-      // Check if interval should change (zoom in/out significantly)
-      // Uses directional thresholds to prevent wrong-direction switches
-      if (!this.isFetchingNewInterval) {
-        const shouldSwitch = this.shouldSwitchInterval(
-          this.currentInterval,
-          bestInterval,
-          intendedVisibleSeconds,
-        );
-        if (shouldSwitch) {
-          console.log(
-            `Interval change: ${this.currentInterval} -> ${bestInterval}, visible: ${Math.round(intendedVisibleSeconds / 86400)} days`,
-          );
-          this.refetchForNewInterval(
-            visibleFromTime,
-            visibleToTime,
-            bestInterval,
-            chart,
-          );
-        }
-      }
+      // Update interval selector based on visible range
+      // Disable intraday intervals if viewing data older than 60 days
+      this.updateIntervalSelector(
+        this.currentInterval,
+        visibleFromTime,
+        visibleToTime,
+      );
 
       // Check if we need to load more historical data (panning to the left edge)
       if (
@@ -1471,10 +1425,6 @@ const Charts = {
       // Use the SAME interval as current data to keep MAs consistent
       const interval = this.currentInterval;
 
-      console.log(
-        `Loading more data: ${new Date(period1 * 1000).toLocaleDateString()} to ${new Date(period2 * 1000).toLocaleDateString()}, interval: ${interval}`,
-      );
-
       const newCandles = await API.getCandlesCustomRange(
         this.currentSymbol,
         period1,
@@ -1502,17 +1452,12 @@ const Charts = {
 
           candlestickSeries.setData(this.loadedCandles);
           this.updateIndicatorsAfterLoad(chart);
-
-          console.log(
-            `Added ${this.loadedCandles.length - previousCount} new candles, total: ${this.loadedCandles.length}`,
-          );
         }
       }
     } catch (error) {
       console.error("Failed to load more historical data:", error);
       // No more historical data available from Yahoo
       this.reachedHistoricalLimit = true;
-      console.log("Reached historical data limit - no more data available");
     } finally {
       setTimeout(() => {
         this.isLoadingMore = false;
@@ -1529,7 +1474,6 @@ const Charts = {
           logicalRange.from < this.LOAD_MORE_THRESHOLD &&
           !this.isFetchingNewInterval
         ) {
-          console.log("Still need more historical data, loading another batch");
           this.loadMoreHistoricalData(candlestickSeries, chart);
         }
       }, this.THROTTLE_MS);
@@ -1544,7 +1488,6 @@ const Charts = {
     chart,
   ) {
     if (this.isFetchingNewInterval) {
-      console.log("[THROTTLED] refetchForNewInterval - already fetching");
       return;
     }
     if (!this.currentSymbol) {
@@ -1559,9 +1502,6 @@ const Charts = {
       this.isIntradayInterval(newInterval) &&
       visibleFromTime < intradayLimitTime
     ) {
-      console.log(
-        `Skipping ${newInterval} interval - data too old for intraday`,
-      );
       if (this.currentInterval === "1d") {
         return; // Already at daily, nothing to do
       }
@@ -1582,10 +1522,6 @@ const Charts = {
       if (period2 - period1 < minSpan) {
         period1 = period2 - minSpan;
       }
-
-      console.log(
-        `Refetching data: ${new Date(period1 * 1000).toLocaleDateString()} to ${new Date(period2 * 1000).toLocaleDateString()}, interval: ${newInterval}`,
-      );
 
       const newCandles = await API.getCandlesCustomRange(
         this.currentSymbol,
@@ -1614,36 +1550,114 @@ const Charts = {
           to: visibleToTime,
         });
 
-        console.log(
-          `Set visible range to: ${new Date(visibleFromTime * 1000).toLocaleDateString()} - ${new Date(visibleToTime * 1000).toLocaleDateString()}`,
-        );
-
         // Update indicators
         this.updateIndicatorsAfterLoad(chart);
 
-        console.log(
-          `Refetched ${newCandles.length} candles at ${newInterval} interval`,
-        );
+        // Update interval selector UI
+        this.updateIntervalSelector(newInterval);
 
         // Check if we need to load more historical data for the new view
         const logicalRange = timeScale.getVisibleLogicalRange();
         if (logicalRange && logicalRange.from < this.LOAD_MORE_THRESHOLD) {
-          console.log(
-            "Triggering additional historical data load after refetch",
-          );
           this.loadMoreHistoricalData(this.candlestickSeries, chart);
         }
-      } else {
-        console.log(
-          `No data returned for ${newInterval}, keeping current interval`,
-        );
       }
     } catch (error) {
       console.error("Failed to refetch data for new interval:", error);
     } finally {
       this.isFetchingNewInterval = false;
-      // DISABLED queued interval processing for now
     }
+  },
+
+  // Change interval from UI button click
+  async changeInterval(newInterval) {
+    if (newInterval === this.currentInterval) return;
+    if (!this.chartInstance || !this.currentSymbol) return;
+
+    // Get current visible range
+    const timeScale = this.chartInstance.timeScale();
+    const visibleRange = timeScale.getVisibleRange();
+
+    // Check if this interval is valid for the current view
+    const fromTime = visibleRange?.from || this.oldestTimestamp;
+    const toTime = visibleRange?.to || this.newestTimestamp;
+    if (!this.isIntervalValidForRange(newInterval, fromTime, toTime)) {
+      return; // Don't switch to invalid interval
+    }
+
+    if (!visibleRange) {
+      // Fallback: use loaded data range
+      const from = this.oldestTimestamp;
+      const to = this.newestTimestamp;
+      this.refetchForNewInterval(from, to, newInterval, this.chartInstance);
+    } else {
+      this.refetchForNewInterval(
+        visibleRange.from,
+        visibleRange.to,
+        newInterval,
+        this.chartInstance,
+      );
+    }
+
+    // Update interval selector UI
+    this.updateIntervalSelector(newInterval);
+  },
+
+  // Check if an interval is valid for a given time range
+  // Intraday intervals only work for data within the last 60 days
+  // Also, intervals should match the time span (don't use 5m for a 1-year view)
+  isIntervalValidForRange(interval, fromTime, toTime) {
+    const now = Math.floor(Date.now() / 1000);
+    const intradayLimitTime = now - this.INTRADAY_LIMIT_DAYS * 24 * 60 * 60;
+    const timeSpan = toTime - fromTime;
+
+    // Intraday intervals require data to be within last 60 days
+    if (this.isIntradayInterval(interval)) {
+      if (fromTime < intradayLimitTime) {
+        return false;
+      }
+    }
+
+    // Check if interval makes sense for the time span
+    // Don't allow intervals that would result in too many or too few candles
+    const secondsPerCandle = this.getSecondsPerCandle(interval);
+    const estimatedCandles = timeSpan / secondsPerCandle;
+
+    // Reasonable range: 10 to 2000 candles
+    // Too few candles = interval too large for the range
+    // Too many candles = interval too small for the range (unreadable)
+    if (estimatedCandles < 5) return false;
+    if (estimatedCandles > 2000) return false;
+
+    return true;
+  },
+
+  // Update interval selector button styles and disabled states
+  updateIntervalSelector(activeInterval, fromTime = null, toTime = null) {
+    if (!this.intervalSelectorElement) return;
+
+    // Use current loaded data range if not specified
+    if (fromTime === null) fromTime = this.oldestTimestamp;
+    if (toTime === null) toTime = this.newestTimestamp;
+
+    const buttons = this.intervalSelectorElement.querySelectorAll("button");
+    buttons.forEach((btn) => {
+      const interval = btn.dataset.interval;
+      const isActive = interval === activeInterval;
+      const isValid = this.isIntervalValidForRange(interval, fromTime, toTime);
+
+      btn.disabled = !isValid;
+      btn.style.border = `1px solid ${isActive ? "#0D7680" : "#E8E8E8"}`;
+      btn.style.background = isActive ? "#E8F4F5" : "transparent";
+      btn.style.color = isValid
+        ? isActive
+          ? "#0D7680"
+          : "#807973"
+        : "#CCCCCC";
+      btn.style.fontWeight = isActive ? "600" : "400";
+      btn.style.cursor = isValid ? "pointer" : "not-allowed";
+      btn.style.opacity = isValid ? "1" : "0.5";
+    });
   },
 
   // Update indicators after loading more data
