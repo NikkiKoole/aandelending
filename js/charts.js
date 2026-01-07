@@ -18,9 +18,13 @@ const Charts = {
   loadedCandles: [],
   isLoadingMore: false,
   isFetchingNewInterval: false,
+
   pendingIntervalChange: null, // Queued interval change while fetching
   oldestTimestamp: null,
   newestTimestamp: null,
+  // Original range timestamps - set when a range is selected, used for interval changes
+  originalFromTime: null,
+  originalToTime: null,
   reachedHistoricalLimit: false, // True when Yahoo has no more old data
   candles: null,
   onRangeChange: null,
@@ -874,6 +878,9 @@ const Charts = {
     if (candles.length > 0) {
       this.oldestTimestamp = candles[0].time;
       this.newestTimestamp = candles[candles.length - 1].time;
+      // Store original range for interval switching
+      this.originalFromTime = candles[0].time;
+      this.originalToTime = candles[candles.length - 1].time;
     }
 
     if (!candles || candles.length === 0) {
@@ -1210,6 +1217,20 @@ const Charts = {
       }
     };
 
+    // Detect actual user interaction (mouse drag or scroll wheel)
+    // This is more reliable than subscribeVisibleLogicalRangeChange which fires on programmatic changes too
+    const handleUserInteraction = () => {
+      activateCustomRange();
+      // Update original timestamps to match current view so interval changes use the panned/zoomed range
+      const visibleRange = chart.timeScale().getVisibleRange();
+      if (visibleRange) {
+        this.originalFromTime = visibleRange.from;
+        this.originalToTime = visibleRange.to;
+      }
+    };
+    container.addEventListener("mouseup", handleUserInteraction);
+    container.addEventListener("wheel", handleUserInteraction);
+
     // Listen for user scroll/zoom interactions and load more data if needed
     // Skip the first few triggers during initial render
     let initialRenderComplete = false;
@@ -1221,11 +1242,6 @@ const Charts = {
     this.candlestickSeries = candlestickSeries;
 
     chart.timeScale().subscribeVisibleLogicalRangeChange((logicalRange) => {
-      // Only activate custom range after initial render
-      if (initialRenderComplete) {
-        activateCustomRange();
-      }
-
       if (
         !initialRenderComplete ||
         !logicalRange ||
@@ -1270,14 +1286,6 @@ const Charts = {
           );
         }
       }
-
-      // Update interval selector based on visible range
-      // Disable intraday intervals if viewing data older than 60 days
-      this.updateIntervalSelector(
-        this.currentInterval,
-        visibleFromTime,
-        visibleToTime,
-      );
 
       // Check if we need to load more historical data (panning to the left edge)
       if (
@@ -1494,23 +1502,10 @@ const Charts = {
       return;
     }
 
-    const now = Math.floor(Date.now() / 1000);
-    const intradayLimitTime = now - this.INTRADAY_LIMIT_DAYS * 24 * 60 * 60;
-
-    // Fall back to daily if trying to get intraday data for old dates
-    if (
-      this.isIntradayInterval(newInterval) &&
-      visibleFromTime < intradayLimitTime
-    ) {
-      if (this.currentInterval === "1d") {
-        return; // Already at daily, nothing to do
-      }
-      newInterval = "1d";
-    }
-
     this.isFetchingNewInterval = true;
 
     try {
+      const now = Math.floor(Date.now() / 1000);
       const visibleSpan = visibleToTime - visibleFromTime;
       const padding = visibleSpan * this.FETCH_PADDING_MULTIPLIER;
       let period1 = Math.floor(visibleFromTime - padding);
@@ -1555,12 +1550,6 @@ const Charts = {
 
         // Update interval selector UI
         this.updateIntervalSelector(newInterval);
-
-        // Check if we need to load more historical data for the new view
-        const logicalRange = timeScale.getVisibleLogicalRange();
-        if (logicalRange && logicalRange.from < this.LOAD_MORE_THRESHOLD) {
-          this.loadMoreHistoricalData(this.candlestickSeries, chart);
-        }
       }
     } catch (error) {
       console.error("Failed to refetch data for new interval:", error);
@@ -1573,62 +1562,34 @@ const Charts = {
   async changeInterval(newInterval) {
     if (newInterval === this.currentInterval) return;
     if (!this.chartInstance || !this.currentSymbol) return;
+    if (this.isFetchingNewInterval) return;
 
-    // Get current visible range
-    const timeScale = this.chartInstance.timeScale();
-    const visibleRange = timeScale.getVisibleRange();
+    // Use the original range timestamps (set when range was selected)
+    // This ensures interval changes don't shift the view
+    const from = this.originalFromTime;
+    const to = this.originalToTime;
 
-    // Check if this interval is valid for the current view
-    const fromTime = visibleRange?.from || this.oldestTimestamp;
-    const toTime = visibleRange?.to || this.newestTimestamp;
-    if (!this.isIntervalValidForRange(newInterval, fromTime, toTime)) {
-      return; // Don't switch to invalid interval
-    }
+    if (!from || !to) return;
 
-    if (!visibleRange) {
-      // Fallback: use loaded data range
-      const from = this.oldestTimestamp;
-      const to = this.newestTimestamp;
-      this.refetchForNewInterval(from, to, newInterval, this.chartInstance);
-    } else {
-      this.refetchForNewInterval(
-        visibleRange.from,
-        visibleRange.to,
-        newInterval,
-        this.chartInstance,
-      );
-    }
-
-    // Update interval selector UI
-    this.updateIntervalSelector(newInterval);
+    this.refetchForNewInterval(from, to, newInterval, this.chartInstance);
   },
 
   // Check if an interval is valid for a given time range
   // Intraday intervals only work for data within the last 60 days
-  // Also, intervals should match the time span (don't use 5m for a 1-year view)
   isIntervalValidForRange(interval, fromTime, toTime) {
     const now = Math.floor(Date.now() / 1000);
     const intradayLimitTime = now - this.INTRADAY_LIMIT_DAYS * 24 * 60 * 60;
-    const timeSpan = toTime - fromTime;
 
-    // Intraday intervals require data to be within last 60 days
+    // Intraday intervals require at least some data within last 60 days
+    // If toTime is recent enough, we can fetch intraday data (even if fromTime is old)
     if (this.isIntradayInterval(interval)) {
-      if (fromTime < intradayLimitTime) {
+      if (toTime < intradayLimitTime) {
         return false;
       }
     }
 
-    // Check if interval makes sense for the time span
-    // Don't allow intervals that would result in too many or too few candles
-    const secondsPerCandle = this.getSecondsPerCandle(interval);
-    const estimatedCandles = timeSpan / secondsPerCandle;
-
-    // Reasonable range: 10 to 2000 candles
-    // Too few candles = interval too large for the range
-    // Too many candles = interval too small for the range (unreadable)
-    if (estimatedCandles < 5) return false;
-    if (estimatedCandles > 2000) return false;
-
+    // All other intervals are always valid
+    // The user can zoom/pan to adjust the view as needed
     return true;
   },
 
