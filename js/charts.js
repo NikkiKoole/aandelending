@@ -4,7 +4,7 @@ const Charts = {
   // Constants
   INTRADAY_LIMIT_DAYS: 60, // Yahoo only provides intraday data for last 60 days
   LOAD_MORE_THRESHOLD: 5, // Load more data when within 5 candles of left edge
-  FETCH_PADDING_MULTIPLIER: 1.0, // Fetch 100% extra on each side when refetching
+  FETCH_PADDING_MULTIPLIER: 0.5, // Fetch 50% extra on each side when refetching
   MIN_CANDLES_FETCH: 20, // Minimum candles to fetch
   DEBOUNCE_MS: 500, // Delay before enabling scroll handlers
   THROTTLE_MS: 1000, // Delay between data fetches
@@ -1580,10 +1580,10 @@ const Charts = {
     const now = Math.floor(Date.now() / 1000);
     const intradayLimitTime = now - this.INTRADAY_LIMIT_DAYS * 24 * 60 * 60;
 
-    // Intraday intervals require at least some data within last 60 days
-    // If toTime is recent enough, we can fetch intraday data (even if fromTime is old)
+    // Intraday intervals require data to be within last 60 days
+    // If fromTime is older than 60 days, disable intraday intervals
     if (this.isIntradayInterval(interval)) {
-      if (toTime < intradayLimitTime) {
+      if (fromTime < intradayLimitTime) {
         return false;
       }
     }
@@ -1594,12 +1594,12 @@ const Charts = {
   },
 
   // Update interval selector button styles and disabled states
-  updateIntervalSelector(activeInterval, fromTime = null, toTime = null) {
+  updateIntervalSelector(activeInterval) {
     if (!this.intervalSelectorElement) return;
 
-    // Use current loaded data range if not specified
-    if (fromTime === null) fromTime = this.oldestTimestamp;
-    if (toTime === null) toTime = this.newestTimestamp;
+    // Use original range (user's intended view) for validity check
+    const fromTime = this.originalFromTime;
+    const toTime = this.originalToTime;
 
     const buttons = this.intervalSelectorElement.querySelectorAll("button");
     buttons.forEach((btn) => {
