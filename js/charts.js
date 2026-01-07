@@ -1,13 +1,32 @@
 // Chart rendering
 
 const Charts = {
+  // Constants
+  INTRADAY_LIMIT_DAYS: 60, // Yahoo only provides intraday data for last 60 days
+  LOAD_MORE_THRESHOLD: 5, // Load more data when within 5 candles of left edge
+  FETCH_PADDING_MULTIPLIER: 1.0, // Fetch 100% extra on each side when refetching
+  MIN_CANDLES_FETCH: 20, // Minimum candles to fetch
+  DEBOUNCE_MS: 500, // Delay before enabling scroll handlers
+  THROTTLE_MS: 1000, // Delay between data fetches
+
   // Current chart instance
   chartInstance: null,
   currentType: "simple",
   currentRange: "1mo",
+  currentSymbol: null,
+  currentInterval: "1d",
+  loadedCandles: [],
+  isLoadingMore: false,
+  isFetchingNewInterval: false,
+  pendingIntervalChange: null, // Queued interval change while fetching
+  oldestTimestamp: null,
+  newestTimestamp: null,
+  reachedHistoricalLimit: false, // True when Yahoo has no more old data
   candles: null,
   onRangeChange: null,
   showTrendlines: false,
+  // Store series reference for updates
+  candlestickSeries: null,
   // Indicator settings
   indicators: {
     ma5: false,
@@ -293,6 +312,94 @@ const Charts = {
     return intervalMap[range] || "1d";
   },
 
+  // Interval hierarchy from smallest to largest (fine to coarse)
+  intervalOrder: ["5m", "15m", "1h", "1d", "1wk", "1mo"],
+
+  // Get interval index in hierarchy (larger index = coarser interval)
+  getIntervalIndex(interval) {
+    return this.intervalOrder.indexOf(interval);
+  },
+
+  // Determine best interval based on visible time span in seconds
+  // Returns the optimal interval for the given timespan
+  getBestIntervalForTimespan(visibleSeconds) {
+    const visibleDays = visibleSeconds / (24 * 60 * 60);
+    if (visibleDays <= 2) return "5m"; // Up to 2 days: 5-minute candles
+    if (visibleDays <= 10) return "15m"; // Up to 10 days: 15-minute candles
+    if (visibleDays <= 60) return "1h"; // Up to 2 months: hourly candles
+    if (visibleDays <= 400) return "1d"; // Up to ~1 year: daily candles
+    if (visibleDays <= 2000) return "1wk"; // Up to ~5 years: weekly candles
+    return "1mo"; // More than 5 years: monthly candles
+  },
+
+  // Determine if an interval switch should happen based on zoom direction
+  // Only allows switching in the correct direction:
+  // - Zooming OUT (more time visible): only switch to coarser intervals
+  // - Zooming IN (less time visible): only switch to finer intervals
+  shouldSwitchInterval(currentInterval, bestInterval, visibleSeconds) {
+    const currentIdx = this.getIntervalIndex(currentInterval);
+    const bestIdx = this.getIntervalIndex(bestInterval);
+
+    if (currentIdx === -1 || bestIdx === -1) return false;
+    if (currentIdx === bestIdx) return false;
+
+    const visibleDays = visibleSeconds / (24 * 60 * 60);
+
+    // Define thresholds with hysteresis to prevent flip-flopping
+    // Upper threshold: when to switch to coarser interval (zooming out)
+    // Lower threshold: when to switch to finer interval (zooming in)
+    // These thresholds are intentionally far apart to avoid frequent switching
+    const thresholds = {
+      "5m": { upper: 4 }, // Switch to 15m when > 4 days
+      "15m": { lower: 1, upper: 20 }, // Switch to 5m when < 1 day, to 1h when > 20 days
+      "1h": { lower: 5, upper: 120 }, // Switch to 15m when < 5 days, to 1d when > 120 days
+      "1d": { lower: 14, upper: 800 }, // Switch to 1h when < 14 days, to 1wk when > 800 days
+      "1wk": { lower: 200, upper: 4000 }, // Switch to 1d when < 200 days, to 1mo when > 4000 days
+      "1mo": { lower: 1000 }, // Switch to 1wk when < 1000 days
+    };
+
+    const currentThresholds = thresholds[currentInterval];
+    if (!currentThresholds) return false;
+
+    // Check if we should zoom OUT (switch to coarser interval)
+    if (
+      bestIdx > currentIdx &&
+      currentThresholds.upper &&
+      visibleDays > currentThresholds.upper
+    ) {
+      return true;
+    }
+
+    // Check if we should zoom IN (switch to finer interval)
+    if (
+      bestIdx < currentIdx &&
+      currentThresholds.lower &&
+      visibleDays < currentThresholds.lower
+    ) {
+      return true;
+    }
+
+    return false;
+  },
+
+  // Get seconds per candle for a given interval
+  getSecondsPerCandle(interval) {
+    const secondsMap = {
+      "5m": 5 * 60,
+      "15m": 15 * 60,
+      "1h": 60 * 60,
+      "1d": 24 * 60 * 60,
+      "1wk": 7 * 24 * 60 * 60,
+      "1mo": 30 * 24 * 60 * 60,
+    };
+    return secondsMap[interval] || 24 * 60 * 60;
+  },
+
+  // Check if an interval requires intraday data (limited to last 60 days)
+  isIntradayInterval(interval) {
+    return interval === "5m" || interval === "15m" || interval === "1h";
+  },
+
   // Convert a "trading days" period to the appropriate candle count for the current interval
   // E.g., MA20 (20 trading days) on weekly data = 4 candles
   getAdjustedPeriod(tradingDaysPeriod, range) {
@@ -362,6 +469,7 @@ const Charts = {
     { key: "1y", label: "1J", interval: "1d" },
     { key: "5y", label: "5J", interval: "1wk" },
     { key: "max", label: "Max", interval: "1mo" },
+    { key: "custom", label: "Aangepast", interval: null },
   ],
 
   // Initialize chart container
@@ -440,6 +548,9 @@ const Charts = {
       "display: flex; gap: 4px; padding: 8px 0; border-bottom: 1px solid #E8E8E8; margin-bottom: 8px;";
 
     this.ranges.forEach((r) => {
+      // Skip custom range for simple chart (it's only for candlestick)
+      if (r.key === "custom") return;
+
       const btn = document.createElement("button");
       btn.textContent = r.label;
       btn.dataset.range = r.key;
@@ -809,11 +920,25 @@ const Charts = {
   },
 
   // Render candlestick chart (using Lightweight Charts if available, else fallback)
-  renderCandlestickChart(candles, range = "1mo") {
+  renderCandlestickChart(candles, range = "1mo", symbol = null) {
     this.clear();
     this.currentType = "candlestick";
     this.currentRange = range;
     this.candles = candles;
+
+    // Store for dynamic loading
+    if (symbol) {
+      this.currentSymbol = symbol;
+    }
+    this.loadedCandles = [...candles];
+    this.isLoadingMore = false;
+    this.isFetchingNewInterval = false;
+    this.reachedHistoricalLimit = false; // Reset when loading new stock
+    this.currentInterval = this.getIntervalForRange(range);
+    if (candles.length > 0) {
+      this.oldestTimestamp = candles[0].time;
+      this.newestTimestamp = candles[candles.length - 1].time;
+    }
 
     if (!candles || candles.length === 0) {
       this.container.innerHTML =
@@ -836,6 +961,7 @@ const Charts = {
       btn.textContent = r.label;
       btn.dataset.range = r.key;
       const isActive = r.key === range;
+      const isCustom = r.key === "custom";
       btn.style.cssText = `
         padding: 6px 12px;
         border: none;
@@ -844,18 +970,24 @@ const Charts = {
         font-family: -apple-system, BlinkMacSystemFont, sans-serif;
         font-size: 13px;
         font-weight: ${isActive ? "600" : "400"};
-        cursor: pointer;
+        cursor: ${isCustom ? "default" : "pointer"};
         border-radius: 4px;
+        display: ${isCustom && !isActive ? "none" : "block"};
       `;
-      btn.addEventListener("click", () => {
-        if (this.onRangeChange) {
-          this.onRangeChange(r.key);
-        }
-      });
+      // Custom button is not clickable - it's just a status indicator
+      if (!isCustom) {
+        btn.addEventListener("click", () => {
+          if (this.onRangeChange) {
+            this.onRangeChange(r.key);
+          }
+        });
+      }
       rangeSelector.appendChild(btn);
     });
 
     wrapper.appendChild(rangeSelector);
+    // Store reference to range selector for updating active state
+    this.rangeSelectorElement = rangeSelector;
 
     // Create chart container
     const chartContainer = document.createElement("div");
@@ -892,8 +1024,8 @@ const Charts = {
         borderColor: this.colors.grid,
         timeVisible: true,
       },
-      handleScroll: false,
-      handleScale: false,
+      handleScroll: true,
+      handleScale: true,
     });
 
     const candlestickSeries = chart.addCandlestickSeries({
@@ -1064,6 +1196,146 @@ const Charts = {
 
     this.chartInstance = chart;
 
+    // Prevent page scroll when mouse is over the chart
+    container.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+      },
+      { passive: false },
+    );
+
+    // Track if user has manually zoomed/panned (to show "Aangepast" button)
+    let hasUserInteracted = false;
+    const activateCustomRange = () => {
+      if (hasUserInteracted) return;
+      hasUserInteracted = true;
+      this.currentRange = "custom";
+      // Update range selector buttons
+      if (this.rangeSelectorElement) {
+        const buttons = this.rangeSelectorElement.querySelectorAll("button");
+        buttons.forEach((btn) => {
+          const isCustom = btn.dataset.range === "custom";
+          const isActive = isCustom;
+          btn.style.background = isActive ? "#F0F0F0" : "transparent";
+          btn.style.color = isActive ? "#0D7680" : "#807973";
+          btn.style.fontWeight = isActive ? "600" : "400";
+          btn.style.display = isCustom ? "block" : btn.style.display;
+          // Show custom button when active
+          if (isCustom) {
+            btn.style.display = "block";
+          }
+        });
+      }
+    };
+
+    // Listen for user scroll/zoom interactions and load more data if needed
+    // Skip the first few triggers during initial render
+    let initialRenderComplete = false;
+    setTimeout(() => {
+      initialRenderComplete = true;
+    }, this.DEBOUNCE_MS);
+
+    // Store reference to candlestick series for later updates
+    this.candlestickSeries = candlestickSeries;
+
+    chart.timeScale().subscribeVisibleLogicalRangeChange((logicalRange) => {
+      // Only activate custom range after initial render
+      if (initialRenderComplete) {
+        activateCustomRange();
+      }
+
+      if (
+        !initialRenderComplete ||
+        !logicalRange ||
+        this.loadedCandles.length === 0
+      ) {
+        return;
+      }
+
+      // Calculate visible time range
+      // Use clamped indices for actual data access
+      const fromIndex = Math.max(0, Math.floor(logicalRange.from));
+      const toIndex = Math.min(
+        this.loadedCandles.length - 1,
+        Math.ceil(logicalRange.to),
+      );
+
+      if (fromIndex >= this.loadedCandles.length || toIndex < 0) {
+        return;
+      }
+
+      const visibleFromTime = this.loadedCandles[fromIndex]?.time;
+      const visibleToTime = this.loadedCandles[toIndex]?.time;
+
+      if (!visibleFromTime || !visibleToTime) {
+        return;
+      }
+
+      // Calculate the INTENDED visible time span based on logical range
+      // This accounts for zooming beyond loaded data
+      const candleCount = logicalRange.to - logicalRange.from;
+      const secondsPerCandle = this.getSecondsPerCandle(this.currentInterval);
+      const intendedVisibleSeconds = candleCount * secondsPerCandle;
+
+      console.log(
+        `[DEBUG] candleCount=${candleCount.toFixed(1)}, secondsPerCandle=${secondsPerCandle}, visibleDays=${(intendedVisibleSeconds / 86400).toFixed(1)}, currentInterval=${this.currentInterval}`,
+      );
+
+      const bestInterval = this.getBestIntervalForTimespan(
+        intendedVisibleSeconds,
+      );
+
+      // Update the % change display for visible range (in custom mode)
+      if (
+        hasUserInteracted &&
+        this.loadedCandles[fromIndex] &&
+        this.loadedCandles[toIndex]
+      ) {
+        const firstCandle = this.loadedCandles[fromIndex];
+        const lastCandle = this.loadedCandles[toIndex];
+        if (typeof App !== "undefined" && App.updateChangeForVisibleRange) {
+          App.updateChangeForVisibleRange(
+            firstCandle.close,
+            lastCandle.close,
+            firstCandle.time,
+            lastCandle.time,
+          );
+        }
+      }
+
+      // Check if interval should change (zoom in/out significantly)
+      // Uses directional thresholds to prevent wrong-direction switches
+      if (!this.isFetchingNewInterval) {
+        const shouldSwitch = this.shouldSwitchInterval(
+          this.currentInterval,
+          bestInterval,
+          intendedVisibleSeconds,
+        );
+        if (shouldSwitch) {
+          console.log(
+            `Interval change: ${this.currentInterval} -> ${bestInterval}, visible: ${Math.round(intendedVisibleSeconds / 86400)} days`,
+          );
+          this.refetchForNewInterval(
+            visibleFromTime,
+            visibleToTime,
+            bestInterval,
+            chart,
+          );
+        }
+      }
+
+      // Check if we need to load more historical data (panning to the left edge)
+      if (
+        logicalRange.from < this.LOAD_MORE_THRESHOLD &&
+        !this.isLoadingMore &&
+        !this.isFetchingNewInterval &&
+        this.currentSymbol
+      ) {
+        this.loadMoreHistoricalData(candlestickSeries, chart);
+      }
+    });
+
     // Handle resize
     const resizeObserver = new ResizeObserver(() => {
       chart.applyOptions({
@@ -1173,6 +1445,278 @@ const Charts = {
       this.renderCandlestickChart(candles, this.currentRange);
     } else {
       this.renderSimpleChart(candles, this.currentRange);
+    }
+  },
+
+  // Load more historical data when user scrolls to the left edge
+  async loadMoreHistoricalData(candlestickSeries, chart) {
+    if (
+      this.isLoadingMore ||
+      !this.currentSymbol ||
+      !this.oldestTimestamp ||
+      this.reachedHistoricalLimit
+    ) {
+      return;
+    }
+
+    this.isLoadingMore = true;
+
+    try {
+      // Calculate time range to fetch (go back further in history)
+      const period2 = this.oldestTimestamp;
+      const currentSpan = this.newestTimestamp - this.oldestTimestamp;
+      // Fetch roughly the same amount of time as currently loaded
+      const period1 = period2 - currentSpan;
+
+      // Use the SAME interval as current data to keep MAs consistent
+      const interval = this.currentInterval;
+
+      console.log(
+        `Loading more data: ${new Date(period1 * 1000).toLocaleDateString()} to ${new Date(period2 * 1000).toLocaleDateString()}, interval: ${interval}`,
+      );
+
+      const newCandles = await API.getCandlesCustomRange(
+        this.currentSymbol,
+        period1,
+        period2,
+        interval,
+      );
+
+      if (newCandles && newCandles.length > 0) {
+        // Filter out duplicates (API already validates data)
+        const existingTimes = new Set(this.loadedCandles.map((c) => c.time));
+        const uniqueNewCandles = newCandles.filter(
+          (c) => !existingTimes.has(c.time),
+        );
+
+        if (uniqueNewCandles.length > 0) {
+          // Combine and sort by time (Lightweight Charts requires ascending order)
+          const combinedCandles = [...uniqueNewCandles, ...this.loadedCandles];
+          combinedCandles.sort((a, b) => a.time - b.time);
+
+          const previousCount = this.loadedCandles.length;
+          this.loadedCandles = combinedCandles;
+          this.oldestTimestamp = combinedCandles[0].time;
+          this.newestTimestamp =
+            combinedCandles[combinedCandles.length - 1].time;
+
+          candlestickSeries.setData(this.loadedCandles);
+          this.updateIndicatorsAfterLoad(chart);
+
+          console.log(
+            `Added ${this.loadedCandles.length - previousCount} new candles, total: ${this.loadedCandles.length}`,
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load more historical data:", error);
+      // No more historical data available from Yahoo
+      this.reachedHistoricalLimit = true;
+      console.log("Reached historical data limit - no more data available");
+    } finally {
+      setTimeout(() => {
+        this.isLoadingMore = false;
+
+        // Check if we still need more data (user zoomed out far)
+        // But don't retry if we've reached the limit
+        if (this.reachedHistoricalLimit) {
+          return;
+        }
+        const timeScale = chart.timeScale();
+        const logicalRange = timeScale.getVisibleLogicalRange();
+        if (
+          logicalRange &&
+          logicalRange.from < this.LOAD_MORE_THRESHOLD &&
+          !this.isFetchingNewInterval
+        ) {
+          console.log("Still need more historical data, loading another batch");
+          this.loadMoreHistoricalData(candlestickSeries, chart);
+        }
+      }, this.THROTTLE_MS);
+    }
+  },
+
+  // Re-fetch all data when zoom level changes significantly (different interval needed)
+  async refetchForNewInterval(
+    visibleFromTime,
+    visibleToTime,
+    newInterval,
+    chart,
+  ) {
+    if (this.isFetchingNewInterval) {
+      console.log("[THROTTLED] refetchForNewInterval - already fetching");
+      return;
+    }
+    if (!this.currentSymbol) {
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const intradayLimitTime = now - this.INTRADAY_LIMIT_DAYS * 24 * 60 * 60;
+
+    // Fall back to daily if trying to get intraday data for old dates
+    if (
+      this.isIntradayInterval(newInterval) &&
+      visibleFromTime < intradayLimitTime
+    ) {
+      console.log(
+        `Skipping ${newInterval} interval - data too old for intraday`,
+      );
+      if (this.currentInterval === "1d") {
+        return; // Already at daily, nothing to do
+      }
+      newInterval = "1d";
+    }
+
+    this.isFetchingNewInterval = true;
+
+    try {
+      const visibleSpan = visibleToTime - visibleFromTime;
+      const padding = visibleSpan * this.FETCH_PADDING_MULTIPLIER;
+      let period1 = Math.floor(visibleFromTime - padding);
+      let period2 = Math.min(Math.ceil(visibleToTime + padding), now);
+
+      // Ensure minimum span
+      const minSpan =
+        this.getSecondsPerCandle(newInterval) * this.MIN_CANDLES_FETCH;
+      if (period2 - period1 < minSpan) {
+        period1 = period2 - minSpan;
+      }
+
+      console.log(
+        `Refetching data: ${new Date(period1 * 1000).toLocaleDateString()} to ${new Date(period2 * 1000).toLocaleDateString()}, interval: ${newInterval}`,
+      );
+
+      const newCandles = await API.getCandlesCustomRange(
+        this.currentSymbol,
+        period1,
+        period2,
+        newInterval,
+      );
+
+      if (newCandles && newCandles.length > 0) {
+        const timeScale = chart.timeScale();
+
+        // Replace all data with new interval data
+        this.loadedCandles = newCandles;
+        this.currentInterval = newInterval;
+        this.reachedHistoricalLimit = false; // Reset - new interval might have more data
+        this.oldestTimestamp = newCandles[0].time;
+        this.newestTimestamp = newCandles[newCandles.length - 1].time;
+
+        // Update the chart
+        this.candlestickSeries.setData(this.loadedCandles);
+
+        // Restore the visible time range using the parameters (the intended view)
+        // This prevents the "zoom shrinking" bug where candle count stays same but time shrinks
+        timeScale.setVisibleRange({
+          from: visibleFromTime,
+          to: visibleToTime,
+        });
+
+        console.log(
+          `Set visible range to: ${new Date(visibleFromTime * 1000).toLocaleDateString()} - ${new Date(visibleToTime * 1000).toLocaleDateString()}`,
+        );
+
+        // Update indicators
+        this.updateIndicatorsAfterLoad(chart);
+
+        console.log(
+          `Refetched ${newCandles.length} candles at ${newInterval} interval`,
+        );
+
+        // Check if we need to load more historical data for the new view
+        const logicalRange = timeScale.getVisibleLogicalRange();
+        if (logicalRange && logicalRange.from < this.LOAD_MORE_THRESHOLD) {
+          console.log(
+            "Triggering additional historical data load after refetch",
+          );
+          this.loadMoreHistoricalData(this.candlestickSeries, chart);
+        }
+      } else {
+        console.log(
+          `No data returned for ${newInterval}, keeping current interval`,
+        );
+      }
+    } catch (error) {
+      console.error("Failed to refetch data for new interval:", error);
+    } finally {
+      this.isFetchingNewInterval = false;
+      // DISABLED queued interval processing for now
+    }
+  },
+
+  // Update indicators after loading more data
+  updateIndicatorsAfterLoad(chart) {
+    const candles = this.loadedCandles;
+    const masEnabled = this.areMAsEnabledForRange(this.currentRange);
+
+    if (!masEnabled) return;
+
+    // Recalculate periods - use daily as default for custom ranges
+    const period5 = 5;
+    const period20 = 20;
+    const period50 = 50;
+    const period200 = 200;
+
+    // Update each enabled indicator
+    if (
+      this.indicators.ma5 &&
+      this.indicatorSeries.ma5 &&
+      candles.length >= period5
+    ) {
+      const maData = this.calculateSMA(candles, period5);
+      this.indicatorSeries.ma5.setData(maData);
+    }
+
+    if (
+      this.indicators.ma20 &&
+      this.indicatorSeries.ma20 &&
+      candles.length >= period20
+    ) {
+      const maData = this.calculateSMA(candles, period20);
+      this.indicatorSeries.ma20.setData(maData);
+    }
+
+    if (
+      this.indicators.ma50 &&
+      this.indicatorSeries.ma50 &&
+      candles.length >= period50
+    ) {
+      const maData = this.calculateSMA(candles, period50);
+      this.indicatorSeries.ma50.setData(maData);
+    }
+
+    if (
+      this.indicators.ma200 &&
+      this.indicatorSeries.ma200 &&
+      candles.length >= period200
+    ) {
+      const maData = this.calculateSMA(candles, period200);
+      this.indicatorSeries.ma200.setData(maData);
+    }
+
+    if (
+      this.indicators.ema20 &&
+      this.indicatorSeries.ema20 &&
+      candles.length >= period20
+    ) {
+      const emaData = this.calculateEMA(candles, period20);
+      this.indicatorSeries.ema20.setData(emaData);
+    }
+
+    if (
+      this.indicators.bollinger &&
+      this.indicatorSeries.bollingerUpper &&
+      candles.length >= period20
+    ) {
+      const bands = this.calculateBollingerBands(
+        candles,
+        Math.max(20, period20),
+        2,
+      );
+      this.indicatorSeries.bollingerUpper.setData(bands.upper);
+      this.indicatorSeries.bollingerLower.setData(bands.lower);
     }
   },
 };

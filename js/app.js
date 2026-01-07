@@ -172,7 +172,11 @@ const App = {
           if (type === "simple") {
             Charts.renderSimpleChart(this.stockCandles, range);
           } else {
-            Charts.renderCandlestickChart(this.stockCandles, range);
+            Charts.renderCandlestickChart(
+              this.stockCandles,
+              range,
+              this.currentStock,
+            );
           }
         }
       });
@@ -211,7 +215,11 @@ const App = {
           // Re-render chart if we're in candlestick mode
           if (this.stockCandles && Charts.currentType === "candlestick") {
             const range = this.currentChartRange || "1mo";
-            Charts.renderCandlestickChart(this.stockCandles, range);
+            Charts.renderCandlestickChart(
+              this.stockCandles,
+              range,
+              this.currentStock,
+            );
           }
         });
     });
@@ -607,7 +615,7 @@ const App = {
         if (Charts.currentType === "simple") {
           Charts.renderSimpleChart(candles, range);
         } else {
-          Charts.renderCandlestickChart(candles, range);
+          Charts.renderCandlestickChart(candles, range, this.currentStock);
         }
       } else {
         this.showChartUnavailable();
@@ -637,8 +645,40 @@ const App = {
       "1y": "1 jaar",
       "5y": "5 jaar",
       max: "totaal",
+      custom: "zichtbaar",
     };
     const rangeLabel = rangeLabels[range] || "";
+
+    const changeEl = document.getElementById("detail-change");
+    const changeClass = percentChange >= 0 ? "positive" : "negative";
+    const sign = percentChange >= 0 ? "+" : "";
+    changeEl.textContent = `${sign}${percentChange.toFixed(2)}% ${rangeLabel}`;
+    changeEl.className = "stock-change " + changeClass;
+  },
+
+  // Update change percentage for visible range (called from Charts)
+  updateChangeForVisibleRange(firstPrice, lastPrice, fromTime, toTime) {
+    if (!firstPrice || !lastPrice) return;
+
+    const change = lastPrice - firstPrice;
+    const percentChange = (change / firstPrice) * 100;
+
+    // Format date range, include year if dates span different years
+    const fromDate = fromTime ? new Date(fromTime * 1000) : null;
+    const toDate = toTime ? new Date(toTime * 1000) : null;
+    const includeYear =
+      fromDate && toDate && fromDate.getFullYear() !== toDate.getFullYear();
+
+    const formatDate = (date) => {
+      const options = { day: "numeric", month: "short" };
+      if (includeYear) options.year = "numeric";
+      return date.toLocaleDateString("nl-NL", options);
+    };
+
+    const rangeLabel =
+      fromDate && toDate
+        ? `${formatDate(fromDate)} - ${formatDate(toDate)}`
+        : "zichtbaar";
 
     const changeEl = document.getElementById("detail-change");
     const changeClass = percentChange >= 0 ? "positive" : "negative";

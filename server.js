@@ -8,7 +8,10 @@ const server = Bun.serve({
     // Proxy endpoint for Yahoo Finance API (to avoid CORS)
     if (path === "/api/yahoo/chart") {
       const symbol = url.searchParams.get("symbol");
-      const range = url.searchParams.get("range") || "1mo";
+      const range = url.searchParams.get("range");
+      const period1 = url.searchParams.get("period1");
+      const period2 = url.searchParams.get("period2");
+      const customInterval = url.searchParams.get("interval");
 
       if (!symbol) {
         return new Response(JSON.stringify({ error: "Symbol required" }), {
@@ -17,22 +20,30 @@ const server = Bun.serve({
         });
       }
 
-      // Determine interval based on range
-      const intervalMap = {
-        "1d": "5m",
-        "5d": "15m",
-        "1mo": "1d",
-        "6mo": "1d",
-        ytd: "1d",
-        "1y": "1d",
-        "5y": "1wk",
-        max: "1mo",
-      };
+      let yahooUrl;
 
-      const interval = intervalMap[range] || "1d";
+      if (period1 && period2) {
+        // Custom date range mode using period1/period2 (unix timestamps)
+        const interval = customInterval || "1d";
+        yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=${interval}`;
+      } else {
+        // Predefined range mode
+        const rangeValue = range || "1mo";
+        const intervalMap = {
+          "1d": "5m",
+          "5d": "15m",
+          "1mo": "1d",
+          "6mo": "1d",
+          ytd: "1d",
+          "1y": "1d",
+          "5y": "1wk",
+          max: "1mo",
+        };
+        const interval = intervalMap[rangeValue] || "1d";
+        yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${rangeValue}&interval=${interval}`;
+      }
 
       try {
-        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
         const response = await fetch(yahooUrl, {
           headers: {
             "User-Agent":

@@ -302,6 +302,73 @@ const API = {
     return data.candles;
   },
 
+  // Get candles for a custom date range using period1/period2 (unix timestamps)
+  async getCandlesCustomRange(symbol, period1, period2, interval = "1d") {
+    const cacheKey = `yahoo_${symbol}_${period1}_${period2}_${interval}`;
+    const cached = this.getCached(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    let url;
+    if (this.isLocal()) {
+      // Use local Bun server proxy
+      url = `/api/yahoo/chart?symbol=${encodeURIComponent(symbol)}&period1=${period1}&period2=${period2}&interval=${interval}`;
+    } else {
+      // Use corsproxy.io for GitHub Pages
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${period1}&period2=${period2}&interval=${interval}`;
+      url = `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Yahoo API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.chart?.result?.[0]) {
+      throw new Error("No data returned");
+    }
+
+    const result = data.chart.result[0];
+    const timestamps = result.timestamp || [];
+    const quote = result.indicators?.quote?.[0] || {};
+
+    const candles = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const time = timestamps[i];
+      const open = quote.open?.[i];
+      const high = quote.high?.[i];
+      const low = quote.low?.[i];
+      const close = quote.close?.[i];
+
+      // Validate all OHLC values are valid numbers
+      if (
+        time != null &&
+        typeof open === "number" &&
+        !isNaN(open) &&
+        typeof high === "number" &&
+        !isNaN(high) &&
+        typeof low === "number" &&
+        !isNaN(low) &&
+        typeof close === "number" &&
+        !isNaN(close)
+      ) {
+        candles.push({
+          time,
+          open,
+          high,
+          low,
+          close,
+          volume: quote.volume?.[i] || 0,
+        });
+      }
+    }
+
+    this.setCache(cacheKey, candles);
+    return candles;
+  },
+
   async searchStocks(query) {
     const q = query.toLowerCase();
     return this.popularStocks
