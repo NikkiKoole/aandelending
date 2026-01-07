@@ -8,6 +8,17 @@ const Charts = {
   candles: null,
   onRangeChange: null,
   showTrendlines: false,
+  // Indicator settings
+  indicators: {
+    ma5: false,
+    ma20: false,
+    ma50: false,
+    ma200: false,
+    ema20: false,
+    bollinger: false,
+  },
+  // Store indicator series references for cleanup
+  indicatorSeries: {},
 
   // Colors
   colors: {
@@ -21,6 +32,14 @@ const Charts = {
     textDark: "#333333",
     trendUp: "#0A8A0A", // Green for uptrend support
     trendDown: "#CC0000", // Red for downtrend resistance
+    ma5: "#4CAF50", // Green for 5-day MA
+    ma20: "#FF9800", // Orange for 20-day MA
+    ma50: "#2196F3", // Blue for 50-day MA
+    ma200: "#9C27B0", // Purple for 200-day MA
+    ema20: "#E91E63", // Pink for 20-day EMA
+    bollingerUpper: "#78909C", // Blue-grey for Bollinger upper
+    bollingerLower: "#78909C", // Blue-grey for Bollinger lower
+    bollingerFill: "rgba(120, 144, 156, 0.1)", // Light fill between bands
   },
 
   // Find local minimums (troughs) in price data
@@ -202,6 +221,135 @@ const Charts = {
     if (change > 0.02) return "up";
     if (change < -0.02) return "down";
     return "neutral";
+  },
+
+  // Calculate Simple Moving Average for chart overlay
+  // Returns array of { time, value } for Lightweight Charts line series
+  calculateSMA(candles, period) {
+    const result = [];
+    let sum = 0;
+    const window = [];
+
+    for (let i = 0; i < candles.length; i++) {
+      const close = candles[i].close;
+      window.push(close);
+      sum += close;
+
+      if (window.length > period) {
+        sum -= window.shift();
+      }
+
+      if (window.length === period) {
+        result.push({
+          time: candles[i].time,
+          value: sum / period,
+        });
+      }
+    }
+    return result;
+  },
+
+  // Calculate Exponential Moving Average for chart overlay
+  // EMA gives more weight to recent prices
+  calculateEMA(candles, period) {
+    const result = [];
+    const k = 2 / (period + 1); // Smoothing factor
+    let ema = null;
+
+    for (let i = 0; i < candles.length; i++) {
+      const close = candles[i].close;
+
+      if (ema === null) {
+        // Seed with first value
+        ema = close;
+      } else {
+        // EMA = (Close - Previous EMA) * k + Previous EMA
+        ema = close * k + ema * (1 - k);
+      }
+
+      // Only start outputting after we have enough data points
+      if (i >= period - 1) {
+        result.push({
+          time: candles[i].time,
+          value: ema,
+        });
+      }
+    }
+    return result;
+  },
+
+  // Get the interval for a given range
+  getIntervalForRange(range) {
+    const intervalMap = {
+      "1d": "5m",
+      "5d": "15m",
+      "1mo": "1d",
+      "6mo": "1d",
+      ytd: "1d",
+      "1y": "1d",
+      "5y": "1wk",
+      max: "1mo",
+    };
+    return intervalMap[range] || "1d";
+  },
+
+  // Convert a "trading days" period to the appropriate candle count for the current interval
+  // E.g., MA20 (20 trading days) on weekly data = 4 candles
+  getAdjustedPeriod(tradingDaysPeriod, range) {
+    const interval = this.getIntervalForRange(range);
+
+    // How many trading days does each candle represent?
+    const daysPerCandle = {
+      "5m": 1 / 78, // ~78 5-min candles per trading day
+      "15m": 1 / 26, // ~26 15-min candles per trading day
+      "1d": 1, // 1 candle = 1 trading day
+      "1wk": 5, // 1 candle = 5 trading days
+      "1mo": 21, // 1 candle = ~21 trading days
+    };
+
+    const multiplier = daysPerCandle[interval] || 1;
+    const adjustedPeriod = Math.round(tradingDaysPeriod / multiplier);
+
+    // Return at least 2 (minimum for a meaningful average)
+    return Math.max(2, adjustedPeriod);
+  },
+
+  // Check if MAs should be enabled for the current range
+  // Disable for intraday views where MAs don't make sense
+  areMAsEnabledForRange(range) {
+    const interval = this.getIntervalForRange(range);
+    // Disable for intraday intervals
+    return interval !== "5m" && interval !== "15m";
+  },
+
+  // Calculate Bollinger Bands (SMA20 with upper and lower bands at 2 standard deviations)
+  calculateBollingerBands(candles, period = 20, stdDev = 2) {
+    const upper = [];
+    const lower = [];
+    const middle = [];
+
+    for (let i = period - 1; i < candles.length; i++) {
+      // Get the window of closes
+      const windowCloses = [];
+      for (let j = i - period + 1; j <= i; j++) {
+        windowCloses.push(candles[j].close);
+      }
+
+      // Calculate SMA (middle band)
+      const sma = windowCloses.reduce((a, b) => a + b, 0) / period;
+
+      // Calculate standard deviation
+      const squaredDiffs = windowCloses.map((c) => Math.pow(c - sma, 2));
+      const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+      const std = Math.sqrt(variance);
+
+      const time = candles[i].time;
+      middle.push({ time, value: sma });
+      upper.push({ time, value: sma + stdDev * std });
+      lower.push({ time, value: sma - stdDev * std });
+    }
+
+    return { upper, middle, lower };
   },
 
   // Time ranges
@@ -790,6 +938,125 @@ const Charts = {
           { time: candles[candles.length - 1].time, value: trendline.endPrice },
         ];
         trendSeries.setData(trendData);
+      }
+    }
+
+    // Clear previous indicator series references
+    this.indicatorSeries = {};
+
+    // Only show indicators if MAs make sense for this timeframe
+    const masEnabled = this.areMAsEnabledForRange(this.currentRange);
+
+    if (masEnabled) {
+      // Get adjusted periods based on candle interval
+      const period5 = this.getAdjustedPeriod(5, this.currentRange);
+      const period20 = this.getAdjustedPeriod(20, this.currentRange);
+      const period50 = this.getAdjustedPeriod(50, this.currentRange);
+      const period200 = this.getAdjustedPeriod(200, this.currentRange);
+
+      // Add MA5 line if enabled (skip if period too small to be useful)
+      if (this.indicators.ma5 && period5 >= 2 && candles.length >= period5) {
+        const maData = this.calculateSMA(candles, period5);
+        this.indicatorSeries.ma5 = chart.addLineSeries({
+          color: this.colors.ma5,
+          lineWidth: 2,
+          title: "MA5",
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        this.indicatorSeries.ma5.setData(maData);
+      }
+
+      // Add MA20 line if enabled
+      if (this.indicators.ma20 && period20 >= 2 && candles.length >= period20) {
+        const maData = this.calculateSMA(candles, period20);
+        this.indicatorSeries.ma20 = chart.addLineSeries({
+          color: this.colors.ma20,
+          lineWidth: 2,
+          title: "MA20",
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        this.indicatorSeries.ma20.setData(maData);
+      }
+
+      // Add MA50 line if enabled
+      if (this.indicators.ma50 && period50 >= 2 && candles.length >= period50) {
+        const maData = this.calculateSMA(candles, period50);
+        this.indicatorSeries.ma50 = chart.addLineSeries({
+          color: this.colors.ma50,
+          lineWidth: 2,
+          title: "MA50",
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        this.indicatorSeries.ma50.setData(maData);
+      }
+
+      // Add MA200 line if enabled
+      if (
+        this.indicators.ma200 &&
+        period200 >= 2 &&
+        candles.length >= period200
+      ) {
+        const maData = this.calculateSMA(candles, period200);
+        this.indicatorSeries.ma200 = chart.addLineSeries({
+          color: this.colors.ma200,
+          lineWidth: 2,
+          title: "MA200",
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        this.indicatorSeries.ma200.setData(maData);
+      }
+
+      // Add EMA20 line if enabled
+      if (
+        this.indicators.ema20 &&
+        period20 >= 2 &&
+        candles.length >= period20
+      ) {
+        const emaData = this.calculateEMA(candles, period20);
+        this.indicatorSeries.ema20 = chart.addLineSeries({
+          color: this.colors.ema20,
+          lineWidth: 2,
+          title: "EMA20",
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        this.indicatorSeries.ema20.setData(emaData);
+      }
+
+      // Add Bollinger Bands if enabled
+      // Use a minimum period of 20 for Bollinger Bands to avoid erratic "spiky" bands
+      // on long-term views where adjusted periods become very small
+      const bollingerPeriod = Math.max(20, period20);
+      if (this.indicators.bollinger && candles.length >= bollingerPeriod) {
+        const bands = this.calculateBollingerBands(candles, bollingerPeriod, 2);
+
+        // Don't let Bollinger Bands affect the price scale
+        const bollingerOptions = {
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          autoscaleInfoProvider: () => null, // Prevent affecting scale
+        };
+
+        // Upper band
+        this.indicatorSeries.bollingerUpper = chart.addLineSeries({
+          ...bollingerOptions,
+          color: this.colors.bollingerUpper,
+          title: "BB Upper",
+        });
+        this.indicatorSeries.bollingerUpper.setData(bands.upper);
+
+        // Lower band
+        this.indicatorSeries.bollingerLower = chart.addLineSeries({
+          ...bollingerOptions,
+          color: this.colors.bollingerLower,
+          title: "BB Lower",
+        });
+        this.indicatorSeries.bollingerLower.setData(bands.lower);
       }
     }
 

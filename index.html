@@ -352,6 +352,106 @@
                                 >
                                     Geavanceerd
                                 </button>
+                                <div
+                                    class="indicator-dropdown"
+                                    id="indicator-dropdown"
+                                >
+                                    <button
+                                        class="btn btn-secondary btn-indicator"
+                                        id="indicator-toggle-btn"
+                                    >
+                                        Indicatoren
+                                    </button>
+                                    <div
+                                        class="indicator-menu"
+                                        id="indicator-menu"
+                                    >
+                                        <label
+                                            class="indicator-option"
+                                            data-tooltip="Het 5-daags voortschrijdend gemiddelde toont de gemiddelde koers van de afgelopen 5 dagen (1 week). Dit is een zeer korte-termijn indicator die snel reageert op prijsveranderingen. Handig om snelle bewegingen te zien, maar kan ook veel schommelingen ('ruis') laten zien."
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                id="toggle-ma5"
+                                            />
+                                            <span
+                                                class="indicator-color"
+                                                style="background: #4caf50"
+                                            ></span>
+                                            MA 5 dagen
+                                        </label>
+                                        <label
+                                            class="indicator-option"
+                                            data-tooltip="Het 20-daags voortschrijdend gemiddelde toont de gemiddelde koers van de afgelopen 20 dagen. Dit helpt je om de korte-termijn trend te zien. Als de koers boven de MA20 lijn ligt, gaat het vaak goed met het aandeel. Ligt de koers eronder, dan kan het aandeel in een dalende trend zitten."
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                id="toggle-ma20"
+                                            />
+                                            <span
+                                                class="indicator-color"
+                                                style="background: #ff9800"
+                                            ></span>
+                                            MA 20 dagen
+                                        </label>
+                                        <label
+                                            class="indicator-option"
+                                            data-tooltip="Het 50-daags voortschrijdend gemiddelde toont de gemiddelde koers van de afgelopen 50 dagen. Dit is een populaire indicator voor de middellange termijn trend. Beleggers kijken vaak of de koers boven of onder deze lijn ligt om te bepalen of een aandeel stijgt of daalt."
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                id="toggle-ma50"
+                                            />
+                                            <span
+                                                class="indicator-color"
+                                                style="background: #2196f3"
+                                            ></span>
+                                            MA 50 dagen
+                                        </label>
+                                        <label
+                                            class="indicator-option"
+                                            data-tooltip="Het 200-daags voortschrijdend gemiddelde is de belangrijkste indicator voor de lange termijn trend. Professionele beleggers gebruiken dit om te bepalen of een aandeel in een 'bull market' (stijgend) of 'bear market' (dalend) zit. Als de koers boven de MA200 ligt, is dat meestal een goed teken."
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                id="toggle-ma200"
+                                            />
+                                            <span
+                                                class="indicator-color"
+                                                style="background: #9c27b0"
+                                            ></span>
+                                            MA 200 dagen
+                                        </label>
+                                        <label
+                                            class="indicator-option"
+                                            data-tooltip="De EMA (Exponentieel voortschrijdend gemiddelde) lijkt op de MA, maar geeft meer gewicht aan recente koersen. Hierdoor reageert de EMA sneller op prijsveranderingen dan een gewone MA. Dit is handig om sneller trends te zien, maar kan ook meer 'valse signalen' geven."
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                id="toggle-ema20"
+                                            />
+                                            <span
+                                                class="indicator-color"
+                                                style="background: #e91e63"
+                                            ></span>
+                                            EMA 20 dagen
+                                        </label>
+                                        <label
+                                            class="indicator-option"
+                                            data-tooltip="Bollinger Bands bestaan uit 3 lijnen: een gemiddelde in het midden en twee banden eromheen. De banden worden breder als de koers veel beweegt (volatiel) en smaller als de koers rustig is. Als de koers de bovenste band raakt, kan het aandeel 'overbought' zijn. Raakt het de onderste band, dan kan het 'oversold' zijn."
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                id="toggle-bollinger"
+                                            />
+                                            <span
+                                                class="indicator-color indicator-color-band"
+                                                style="background: #78909c"
+                                            ></span>
+                                            Bollinger Bands
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="chart-container" id="stock-chart">

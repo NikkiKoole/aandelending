@@ -8,6 +8,7 @@ Een educatief aandelenhandelspel voor kinderen om te leren over de beurs met nep
 - **Echte aandelenprijzen** - 15 minuten vertraagde data via Yahoo Finance
 - **35 populaire aandelen** - Nederlandse, Europese en Amerikaanse bedrijven
 - **Grafieken** - Eenvoudige lijngrafiek of geavanceerde candlestick chart
+- **Technische indicatoren** - MA, EMA, Bollinger Bands ([documentatie](INDICATOREN.md))
 - **Portefeuille tracking** - Bekijk je bezittingen en winst/verlies
 - **Transactiekosten** - Simuleert Degiro-achtige kosten (€3 EU, €2 US)
 - **Marktnieuws** - Actueel financieel nieuws op het dashboard

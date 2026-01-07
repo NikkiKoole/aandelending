@@ -178,6 +178,44 @@ const App = {
       });
     });
 
+    // Indicator dropdown toggle
+    const indicatorBtn = document.getElementById("indicator-toggle-btn");
+    const indicatorMenu = document.getElementById("indicator-menu");
+
+    indicatorBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      indicatorMenu.classList.toggle("active");
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".indicator-dropdown")) {
+        indicatorMenu.classList.remove("active");
+      }
+    });
+
+    // Indicator toggles
+    const indicatorToggles = [
+      "ma5",
+      "ma20",
+      "ma50",
+      "ma200",
+      "ema20",
+      "bollinger",
+    ];
+    indicatorToggles.forEach((indicator) => {
+      document
+        .getElementById(`toggle-${indicator}`)
+        .addEventListener("change", (e) => {
+          Charts.indicators[indicator] = e.target.checked;
+          // Re-render chart if we're in candlestick mode
+          if (this.stockCandles && Charts.currentType === "candlestick") {
+            const range = this.currentChartRange || "1mo";
+            Charts.renderCandlestickChart(this.stockCandles, range);
+          }
+        });
+    });
+
     // Stock sort dropdown
     document.getElementById("stock-sort").addEventListener("change", (e) => {
       this.renderPopularStocks(e.target.value);
