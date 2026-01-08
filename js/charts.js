@@ -389,13 +389,16 @@ const Charts = {
 
   // Convert a "trading days" period to the appropriate candle count for the current interval
   // E.g., MA20 (20 trading days) on weekly data = 4 candles
-  getAdjustedPeriod(tradingDaysPeriod, range) {
-    const interval = this.getIntervalForRange(range);
-
+  // Convert a "trading days" period to the appropriate candle count for the current interval
+  // E.g., MA20 (20 trading days) on weekly data = 4 candles
+  getAdjustedPeriodForInterval(tradingDaysPeriod, interval) {
     // How many trading days does each candle represent?
     const daysPerCandle = {
       "5m": 1 / 78, // ~78 5-min candles per trading day
       "15m": 1 / 26, // ~26 15-min candles per trading day
+      "30m": 1 / 13, // ~13 30-min candles per trading day
+      "1h": 1 / 6.5, // ~6.5 1-hour candles per trading day
+      "4h": 1 / 1.6, // ~1.6 4-hour candles per trading day
       "1d": 1, // 1 candle = 1 trading day
       "1wk": 5, // 1 candle = 5 trading days
       "1mo": 21, // 1 candle = ~21 trading days
@@ -408,11 +411,10 @@ const Charts = {
     return Math.max(2, adjustedPeriod);
   },
 
-  // Check if MAs should be enabled for the current range
-  // Disable for intraday views where MAs don't make sense
-  areMAsEnabledForRange(range) {
-    const interval = this.getIntervalForRange(range);
-    // Disable for intraday intervals
+  // Check if MAs should be enabled for the current interval
+  // Disable for very short intervals where MAs don't make sense
+  areMAsEnabledForInterval(interval) {
+    // Disable for 5m and 15m - too noisy for meaningful MAs
     return interval !== "5m" && interval !== "15m";
   },
 
@@ -1113,14 +1115,26 @@ const Charts = {
     this.indicatorSeries = {};
 
     // Only show indicators if MAs make sense for this timeframe
-    const masEnabled = this.areMAsEnabledForRange(this.currentRange);
+    const masEnabled = this.areMAsEnabledForInterval(this.currentInterval);
 
     if (masEnabled) {
       // Get adjusted periods based on candle interval
-      const period5 = this.getAdjustedPeriod(5, this.currentRange);
-      const period20 = this.getAdjustedPeriod(20, this.currentRange);
-      const period50 = this.getAdjustedPeriod(50, this.currentRange);
-      const period200 = this.getAdjustedPeriod(200, this.currentRange);
+      const period5 = this.getAdjustedPeriodForInterval(
+        5,
+        this.currentInterval,
+      );
+      const period20 = this.getAdjustedPeriodForInterval(
+        20,
+        this.currentInterval,
+      );
+      const period50 = this.getAdjustedPeriodForInterval(
+        50,
+        this.currentInterval,
+      );
+      const period200 = this.getAdjustedPeriodForInterval(
+        200,
+        this.currentInterval,
+      );
 
       // Add MA5 line if enabled (skip if period too small to be useful)
       if (this.indicators.ma5 && period5 >= 2 && candles.length >= period5) {
@@ -1604,8 +1618,8 @@ const Charts = {
           to: visibleToTime,
         });
 
-        // Update indicators
-        this.updateIndicatorsAfterLoad(chart);
+        // Recreate indicators with new interval's periods
+        this.recreateIndicators(chart, this.loadedCandles);
 
         // Update interval selector UI
         this.updateIntervalSelector(newInterval);
@@ -1680,18 +1694,159 @@ const Charts = {
     });
   },
 
+  // Clear all indicator series from the chart
+  clearIndicatorSeries(chart) {
+    if (!chart) return;
+
+    for (const key of Object.keys(this.indicatorSeries)) {
+      if (this.indicatorSeries[key]) {
+        try {
+          chart.removeSeries(this.indicatorSeries[key]);
+        } catch (e) {
+          // Series might already be removed
+        }
+      }
+    }
+    this.indicatorSeries = {};
+  },
+
+  // Recreate indicators for the current interval (used after interval change)
+  recreateIndicators(chart, candles) {
+    if (!chart || !candles || candles.length === 0) return;
+
+    // Clear existing indicators
+    this.clearIndicatorSeries(chart);
+
+    const masEnabled = this.areMAsEnabledForInterval(this.currentInterval);
+    if (!masEnabled) return;
+
+    // Get adjusted periods based on current interval
+    const period5 = this.getAdjustedPeriodForInterval(5, this.currentInterval);
+    const period20 = this.getAdjustedPeriodForInterval(
+      20,
+      this.currentInterval,
+    );
+    const period50 = this.getAdjustedPeriodForInterval(
+      50,
+      this.currentInterval,
+    );
+    const period200 = this.getAdjustedPeriodForInterval(
+      200,
+      this.currentInterval,
+    );
+
+    // Recreate each enabled indicator
+    if (this.indicators.ma5 && period5 >= 2 && candles.length >= period5) {
+      const maData = this.calculateSMA(candles, period5);
+      this.indicatorSeries.ma5 = chart.addLineSeries({
+        color: this.colors.ma5,
+        lineWidth: 2,
+        title: "MA5",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      this.indicatorSeries.ma5.setData(maData);
+    }
+
+    if (this.indicators.ma20 && period20 >= 2 && candles.length >= period20) {
+      const maData = this.calculateSMA(candles, period20);
+      this.indicatorSeries.ma20 = chart.addLineSeries({
+        color: this.colors.ma20,
+        lineWidth: 2,
+        title: "MA20",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      this.indicatorSeries.ma20.setData(maData);
+    }
+
+    if (this.indicators.ma50 && period50 >= 2 && candles.length >= period50) {
+      const maData = this.calculateSMA(candles, period50);
+      this.indicatorSeries.ma50 = chart.addLineSeries({
+        color: this.colors.ma50,
+        lineWidth: 2,
+        title: "MA50",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      this.indicatorSeries.ma50.setData(maData);
+    }
+
+    if (
+      this.indicators.ma200 &&
+      period200 >= 2 &&
+      candles.length >= period200
+    ) {
+      const maData = this.calculateSMA(candles, period200);
+      this.indicatorSeries.ma200 = chart.addLineSeries({
+        color: this.colors.ma200,
+        lineWidth: 2,
+        title: "MA200",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      this.indicatorSeries.ma200.setData(maData);
+    }
+
+    if (this.indicators.ema20 && period20 >= 2 && candles.length >= period20) {
+      const emaData = this.calculateEMA(candles, period20);
+      this.indicatorSeries.ema20 = chart.addLineSeries({
+        color: this.colors.ema20,
+        lineWidth: 2,
+        title: "EMA20",
+        priceLineVisible: false,
+        lastValueVisible: false,
+      });
+      this.indicatorSeries.ema20.setData(emaData);
+    }
+
+    const bollingerPeriod = Math.max(20, period20);
+    if (this.indicators.bollinger && candles.length >= bollingerPeriod) {
+      const bands = this.calculateBollingerBands(candles, bollingerPeriod, 2);
+      const bollingerOptions = {
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        autoscaleInfoProvider: () => null,
+      };
+
+      this.indicatorSeries.bollingerUpper = chart.addLineSeries({
+        ...bollingerOptions,
+        color: this.colors.bollingerUpper,
+        title: "BB Upper",
+      });
+      this.indicatorSeries.bollingerUpper.setData(bands.upper);
+
+      this.indicatorSeries.bollingerLower = chart.addLineSeries({
+        ...bollingerOptions,
+        color: this.colors.bollingerLower,
+        title: "BB Lower",
+      });
+      this.indicatorSeries.bollingerLower.setData(bands.lower);
+    }
+  },
+
   // Update indicators after loading more data
   updateIndicatorsAfterLoad(chart) {
     const candles = this.loadedCandles;
-    const masEnabled = this.areMAsEnabledForRange(this.currentRange);
+    const masEnabled = this.areMAsEnabledForInterval(this.currentInterval);
 
     if (!masEnabled) return;
 
-    // Recalculate periods - use daily as default for custom ranges
-    const period5 = 5;
-    const period20 = 20;
-    const period50 = 50;
-    const period200 = 200;
+    // Get adjusted periods based on current interval
+    const period5 = this.getAdjustedPeriodForInterval(5, this.currentInterval);
+    const period20 = this.getAdjustedPeriodForInterval(
+      20,
+      this.currentInterval,
+    );
+    const period50 = this.getAdjustedPeriodForInterval(
+      50,
+      this.currentInterval,
+    );
+    const period200 = this.getAdjustedPeriodForInterval(
+      200,
+      this.currentInterval,
+    );
 
     // Update each enabled indicator
     if (
