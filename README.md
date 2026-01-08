@@ -7,7 +7,8 @@ Een educatief aandelenhandelspel voor kinderen om te leren over de beurs met nep
 - **Handelen met nepgeld** - Start met €10.000 virtueel geld
 - **Echte aandelenprijzen** - 15 minuten vertraagde data via Yahoo Finance
 - **35 populaire aandelen** - Nederlandse, Europese en Amerikaanse bedrijven
-- **Grafieken** - Eenvoudige lijngrafiek of geavanceerde candlestick chart
+- **Grafieken** - Eenvoudige lijngrafiek of geavanceerde candlestick chart met zoom/pan
+- **Interval selectie** - Kies candle interval (5m, 15m, 30m, 1u, 4u, 1d, 1w, 1m)
 - **Technische indicatoren** - MA, EMA, Bollinger Bands ([documentatie](INDICATOREN.md))
 - **Portefeuille tracking** - Bekijk je bezittingen en winst/verlies
 - **Transactiekosten** - Simuleert Degiro-achtige kosten (€3 EU, €2 US)

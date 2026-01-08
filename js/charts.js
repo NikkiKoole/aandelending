@@ -323,11 +323,57 @@ const Charts = {
       "15m": 15 * 60,
       "30m": 30 * 60,
       "1h": 60 * 60,
+      "4h": 4 * 60 * 60,
       "1d": 24 * 60 * 60,
       "1wk": 7 * 24 * 60 * 60,
       "1mo": 30 * 24 * 60 * 60,
     };
     return secondsMap[interval] || 24 * 60 * 60;
+  },
+
+  // Aggregate candles into larger intervals (e.g., 1h -> 4h)
+  aggregateCandles(candles, targetIntervalSeconds) {
+    if (!candles || candles.length === 0) return [];
+
+    const result = [];
+    let currentGroup = null;
+    let groupStartTime = null;
+
+    for (const candle of candles) {
+      // Calculate which group this candle belongs to
+      const groupTime =
+        Math.floor(candle.time / targetIntervalSeconds) * targetIntervalSeconds;
+
+      if (groupStartTime !== groupTime) {
+        // Save previous group
+        if (currentGroup) {
+          result.push(currentGroup);
+        }
+        // Start new group
+        groupStartTime = groupTime;
+        currentGroup = {
+          time: groupTime,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+          volume: candle.volume || 0,
+        };
+      } else {
+        // Add to current group
+        currentGroup.high = Math.max(currentGroup.high, candle.high);
+        currentGroup.low = Math.min(currentGroup.low, candle.low);
+        currentGroup.close = candle.close;
+        currentGroup.volume += candle.volume || 0;
+      }
+    }
+
+    // Don't forget the last group
+    if (currentGroup) {
+      result.push(currentGroup);
+    }
+
+    return result;
   },
 
   // Check if an interval requires intraday data (limited to last 60 days)
@@ -336,7 +382,8 @@ const Charts = {
       interval === "5m" ||
       interval === "15m" ||
       interval === "30m" ||
-      interval === "1h"
+      interval === "1h" ||
+      interval === "4h"
     );
   },
 
@@ -942,6 +989,7 @@ const Charts = {
       { key: "15m", label: "15m" },
       { key: "30m", label: "30m" },
       { key: "1h", label: "1u" },
+      { key: "4h", label: "4u" },
       { key: "1d", label: "1d" },
       { key: "1wk", label: "1w" },
       { key: "1mo", label: "1m" },
@@ -1518,12 +1566,23 @@ const Charts = {
         period1 = period2 - minSpan;
       }
 
-      const newCandles = await API.getCandlesCustomRange(
+      // For 4h interval, fetch 1h data and aggregate
+      const fetchInterval = newInterval === "4h" ? "1h" : newInterval;
+
+      let newCandles = await API.getCandlesCustomRange(
         this.currentSymbol,
         period1,
         period2,
-        newInterval,
+        fetchInterval,
       );
+
+      // Aggregate 1h candles into 4h if needed
+      if (newInterval === "4h" && newCandles && newCandles.length > 0) {
+        newCandles = this.aggregateCandles(
+          newCandles,
+          this.getSecondsPerCandle("4h"),
+        );
+      }
 
       if (newCandles && newCandles.length > 0) {
         const timeScale = chart.timeScale();
